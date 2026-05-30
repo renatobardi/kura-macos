@@ -137,6 +137,85 @@ Todos em `.claude/hooks/`. Rodam automaticamente via `.claude/settings.json`.
 
 ---
 
+## Plano de implementação — App macOS
+
+Plano completo em [`KURA-MVP-PLAN.md`](https://github.com/renatobardi/kura/blob/main/KURA-MVP-PLAN.md). Abaixo: tarefas do app macOS por fase.
+
+### Fase 0 — Fundação
+- [ ] Projeto SwiftUI novo, target macOS, `NSApplicationActivationPolicy.accessory` (menu bar, sem dock icon)
+- [ ] `Info.plist`: `LSUIElement = YES`
+- [ ] Design tokens: cores, tipografia, SF Symbols thin em `Design/Theme/`
+- [ ] Sign in with Apple → troca token Firebase → armazena no Keychain
+- [ ] Tela pós-login (placeholder)
+- [ ] GitHub Actions com macOS runner: build + testes
+
+**Critério de done:** app abre como menu bar, usuário faz login com Apple ID, CI verde.
+
+### Fase 1 — Chat
+- [ ] Sidebar com lista de chats
+- [ ] View de chat: composer, mensagens, streaming NDJSON
+- [ ] Chat anônimo (`/anon`)
+- [ ] Upload de arquivo (drag-and-drop)
+- [ ] Título editável + lock/unlock
+- [ ] Settings → AI & Models: configurar providers BYOS
+
+**Critério de done:** conversa fluindo, streaming visível, anexo sendo processado.
+
+### Fase 2 — Vault
+- [ ] View do vault: árvore de páginas, busca, página individual
+- [ ] Grafo de conhecimento (visualização)
+- [ ] Ask/RAG: input de query, resposta com citações linkáveis
+- [ ] Lapidação via chat: "ajusta isso na página X" → LLM aplica
+
+**Critério de done:** ingerir, perguntar, ver resposta com citação.
+
+### Fase 3 — Collectors
+- [ ] Settings → Connections: conectar Google OAuth (Gmail + Drive)
+- [ ] Settings → Connections: adicionar RSS feed
+- [ ] `Collectors.LocalWatcher`: FSEvents detecta mudanças → envia ao backend via Phoenix Channel
+- [ ] Indicador no menu bar: collector ativo / erro
+- [ ] Exclusão por fonte: configuração conversacional
+
+### Fase 4 — Outputs & Inbox
+- [ ] Home view: dashboard diário (visual, SwiftUI nativo)
+- [ ] Player de áudio do briefing
+- [ ] Inbox view: lista de items pendentes, interação conversacional
+- [ ] Badge no menu bar quando há items no Inbox
+- [ ] Push notifications recebidas + deep link para item
+
+**Critério de done:** abre app de manhã, vê dashboard, ouve briefing, trata Inbox.
+
+### Fase 5 — App Completo
+- [ ] ⌘K command palette: busca + ações, resultados agrupados (Vaults / Chats / Files / Actions)
+- [ ] Settings → Account: dashboard de custo por período/tipo/total
+- [ ] Settings → Privacy: gerenciar regras de exclusão
+- [ ] Settings → Advanced: Doctor view (Kura-chan preocupada se componente vermelho)
+- [ ] Setup wizard completo conduzido por Kura-chan
+- [ ] Onboarding lúdico: LLM pergunta interesses e constrói ontologia
+- [ ] Folder sync: `iCloud Drive/Kura/Projects` + `Spaces/`
+
+### Fase 6 — Design, Polish & Ship
+- [ ] Design system completo: todos os tokens implementados como Color assets
+- [ ] Componentes SwiftUI: botões (primary/ghost/danger), cards, modais, toasts, tooltips, badges
+- [ ] Kura-chan: modelo vetorial (SwiftUI Canvas) + estados (pensando, trabalhando, feliz, dormindo, apologética, relaxando, esperando)
+- [ ] Splash screen noren (Metal/Canvas, física de tecido, só na 1ª abertura do dia)
+- [ ] Easter egg MVP: hanko stamp (save / promoção ao vault)
+- [ ] Build `.dmg` assinado (Apple Developer certificate) + notarização
+- [ ] Sparkle integrado (servidor de updates via GitHub Releases)
+- [ ] XCUITest nos fluxos críticos
+
+**Critério de done:** .dmg instalável, auto-update funcionando, app parece produto premium.
+
+### Fora do MVP — não implementar sem instrução explícita
+- iOS / iPadOS app
+- Microsoft OAuth (Outlook, OneDrive)
+- iCloud Mail / Drive
+- Vault por Space / Project
+- Egg universe pop culture completo (só hanko no MVP)
+- Weekly digest, entity profiles, deep dive áudio
+
+---
+
 ## Workflow
 
 ### Branches
