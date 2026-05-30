@@ -11,11 +11,60 @@ Este repositório contém **exclusivamente o app macOS** do projeto Kura.
 
 ---
 
+## Estado atual — Fase 0 em 90%
+
+> Última atualização: 2026-05-30
+
+### ✅ Implementado (commit `feat(foundation): implement phase 0` — `main`)
+
+- Projeto Xcode criado: macOS 14+, SwiftUI, Bundle ID `pro.oute.kura`
+- Menu bar app: `NSApplicationActivationPolicy.accessory`, `LSUIElement = YES`
+- Design tokens: 9 cores em `Assets.xcassets` + `Theme.swift` (KuraFont, KuraSpacing, KuraLayout)
+- `KeychainHelper.swift` — Security framework, nunca UserDefaults
+- `AuthManager.swift` — Sign in with Apple + SHA256 nonce (Firebase stub comentado aguardando capability)
+- `LoginView.swift`, `DashboardView.swift` (placeholder), `RootView.swift`
+- Firebase SDK 12.14.0 via SPM: FirebaseAuth + FirebaseAnalytics
+- `GoogleService-Info.plist` no projeto (Firebase project: `oute-kura`)
+- `.github/workflows/ci.yml` — GitHub Actions build + test
+- Build: **0 errors, 0 warnings**
+
+### ⏳ Pendente — aguardando Apple Developer Account aprovar (~2 dias)
+
+A conta Apple Developer foi criada como **Individual / Sole Proprietor** e está em aprovação.
+Quando aprovar, fazer em ordem:
+
+**1. Portal Apple Developer** ([developer.apple.com](https://developer.apple.com))
+- Certificates, Identifiers & Profiles → criar App ID com Bundle ID `pro.oute.kura`
+- Habilitar capability **"Sign in with Apple"** no App ID
+
+**2. Firebase Console** ([console.firebase.google.com](https://console.firebase.google.com) → projeto `oute-kura`)
+- Authentication → Sign-in method → Apple → adicionar Return URL:
+  `https://oute-kura.firebaseapp.com/__/auth/handler`
+
+**3. Xcode**
+- Target Kura → Signing & Capabilities → `+` → **Sign in with Apple**
+- Isso atualiza `Kura/Kura/Kura.entitlements` automaticamente
+
+**4. Código — descomentar em `App/AppDelegate.swift`:**
+```swift
+import FirebaseCore          // adicionar import
+// FirebaseApp.configure()   // remover //
+```
+**E em `Core/Auth/AuthManager.swift`:**
+```swift
+// import FirebaseAuth       // remover //
+```
+E descomentar o bloco Firebase credential em `authorizationController(didCompleteWithAuthorization:)` (linhas ~95-99)
+
+**Critério de done da Fase 0:** app abre como menu bar, usuário faz login com Apple ID, CI verde.
+
+---
+
 ## Stack
 
 | Componente | Tecnologia |
 |---|---|
-| Plataforma | macOS 13+ |
+| Plataforma | macOS 14+ |
 | UI | SwiftUI (`NSApplicationActivationPolicy.accessory` — menu bar) |
 | Auth | Firebase Auth + Sign in with Apple |
 | Notificações | FCM → APNs |
@@ -26,40 +75,65 @@ Este repositório contém **exclusivamente o app macOS** do projeto Kura.
 
 ---
 
-## Estado atual
+## Estrutura do projeto (atual)
 
-Pré-implementação. Contém apenas hooks Claude Code e documentação.
-**Ainda não existem:** projeto Xcode, `Sources/`, `Tests/`.
-Primeira tarefa: criar projeto SwiftUI no Xcode (macOS target, `LSUIElement = YES` no Info.plist para menu bar app sem dock icon).
+```
+kura-macos/
+├── .github/workflows/ci.yml
+├── CLAUDE.md
+└── Kura/
+    ├── Kura.xcodeproj/
+    └── Kura/
+        ├── App/
+        │   ├── KuraApp.swift           # @main, NSApplicationDelegateAdaptor
+        │   └── AppDelegate.swift       # menu bar setup, NSStatusItem, NSPopover
+        ├── Core/
+        │   └── Auth/
+        │       ├── AuthManager.swift   # ObservableObject, Sign in with Apple
+        │       └── KeychainHelper.swift
+        ├── Design/
+        │   └── Theme/
+        │       └── Theme.swift         # KuraFont, KuraSpacing, KuraLayout
+        ├── Features/
+        │   ├── Auth/
+        │   │   └── LoginView.swift
+        │   ├── Chat/                   # vazio — Fase 1
+        │   ├── Dashboard/
+        │   │   └── DashboardView.swift # placeholder pós-login
+        │   ├── Inbox/                  # vazio — Fase 4
+        │   ├── Search/                 # vazio — Fase 5
+        │   └── Settings/              # vazio — Fase 1
+        ├── Assets.xcassets/            # 9 color tokens + AppIcon
+        ├── GoogleService-Info.plist
+        ├── Info.plist                  # LSUIElement=YES, macOS 14+
+        ├── Kura.entitlements           # sandbox=NO, network=YES
+        └── RootView.swift              # roteador authState → login | dashboard
+```
 
 ---
 
-## Estrutura do projeto (target)
+## Decisões técnicas desta sessão
 
-```
-KuraApp/
-├── App/
-│   ├── KuraApp.swift          # Entry point, menu bar setup
-│   └── AppDelegate.swift
-├── Features/
-│   ├── Auth/                  # Sign in with Apple + Firebase flow
-│   ├── Chat/                  # Chat persistente + anônimo + streaming NDJSON
-│   ├── Vault/                 # Ask/RAG + lapidação via chat
-│   ├── Dashboard/             # Daily briefing visual + player de áudio
-│   ├── Inbox/                 # Centro de comando assíncrono
-│   ├── Search/                # ⌘K command palette
-│   └── Settings/              # AI, Connections, Privacy, etc.
-├── Core/
-│   ├── API/                   # Phoenix Channels client + URLSession REST
-│   ├── Auth/                  # Firebase + Sign in with Apple helpers
-│   ├── Models/                # Tipos compartilhados (Codable structs)
-│   └── Notifications/         # FCM registration + APNs handling
-└── Design/
-    ├── Theme/                 # Color tokens, tipografia, spacing
-    ├── Components/            # Botões, cards, toasts, modais, badges
-    ├── KuraChan/              # Personagem + estados + animações
-    └── Splash/                # Noren animation (primeira abertura do dia)
-```
+| Decisão | Motivo |
+|---------|--------|
+| `MACOSX_DEPLOYMENT_TARGET = 14.0` | Xcode 26.5 gerou 26.5, corrigido para 14.0 |
+| `ENABLE_APP_SANDBOX = NO` | Distribuição via `.dmg` direto, não App Store |
+| Colors em `Assets.xcassets` principal | Xcode 16+ auto-gera extensões `Color.kura*` — xcassets separado causaria conflito |
+| `PBXFileSystemSynchronizedRootGroup` | Xcode 16+ — arquivos adicionados ao disco são reconhecidos automaticamente |
+| Firebase imports comentados | Aguardando Sign in with Apple capability para ativar |
+| Team ID `69VJAKBZ5W` | Personal Team — muda para o Team ID correto após aprovação da conta Developer |
+
+---
+
+## Credenciais e configurações
+
+| Item | Valor |
+|------|-------|
+| Bundle ID | `pro.oute.kura` |
+| Firebase project | `oute-kura` |
+| Firebase Auth callback | `https://oute-kura.firebaseapp.com/__/auth/handler` |
+| Apple Developer | Individual / Sole Proprietor (aprovação pendente) |
+| Team ID (Personal) | `69VJAKBZ5W` |
 
 ---
 
@@ -82,16 +156,19 @@ KuraApp/
 - Phoenix Channels encapsulados em `Core/API/ChannelClient.swift`.
 
 ### Design System
-Tokens definidos em `Design/Theme/` — nunca hardcode valores de cor:
+Tokens em `Assets.xcassets` — nunca hardcode valores de cor:
 
 | Token | Valor | Papel |
 |---|---|---|
-| `accent` | `#3730A3` | Índigo/藍 — cor principal |
-| `accentHover` | `#4338CA` | Hover do accent |
-| `background` | `#212121` | Fundo dark |
-| `sidebar` | `#171717` | Sidebar dark |
-| `hanko` | `#9B1C1C` | Seal 蔵 — único momento quente |
-| `text` | `#ECECEC` | Texto primário |
+| `kuraAccent` | `#3730A3` | Índigo/藍 — cor principal |
+| `kuraAccentHover` | `#4338CA` | Hover do accent |
+| `kuraBackground` | `#212121` | Fundo dark |
+| `kuraSidebar` | `#171717` | Sidebar dark |
+| `kuraHanko` | `#9B1C1C` | Seal 蔵 — único momento quente |
+| `kuraText` | `#ECECEC` | Texto primário |
+| `kuraTextMuted` | `#6B7280` | Texto secundário |
+| `kuraDivider` | `#2D2D2D` | Separadores |
+| `kuraSurface` | `#2A2A2A` | Cards/surfaces |
 
 Hiragino Sans como tipografia primária (não fallback) em todos os textos.
 
@@ -100,20 +177,20 @@ Hiragino Sans como tipografia primária (não fallback) em todos os textos.
 ## Comandos
 
 ```bash
-# Testes (após criação do projeto Xcode)
-xcodebuild test -scheme Kura -destination 'platform=macOS'
-
 # Build
-xcodebuild build -scheme Kura -destination 'platform=macOS'
+cd Kura && xcodebuild build \
+  -scheme Kura -project Kura.xcodeproj \
+  -destination 'platform=macOS' \
+  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 
-# Formatar Swift (o hook swift-format faz automaticamente no Edit)
-# Requer: brew install swift-format
-# Cria .swift-format automaticamente (lineLength: 120, indentation: 4 spaces)
-swift-format --in-place Sources/**/*.swift
+# Testes
+cd Kura && xcodebuild test \
+  -scheme Kura -project Kura.xcodeproj \
+  -destination 'platform=macOS' \
+  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 
-# Debugar hook isoladamente (stdin = JSON do evento Claude Code)
-echo '{"tool_name":"Edit","tool_input":{"file_path":"foo.swift","new_string":"..."}}' \
-  | python3 .claude/hooks/<hook>.py
+# Formatar Swift
+swift-format --in-place Kura/Kura/**/*.swift
 ```
 
 ---
@@ -140,81 +217,71 @@ Todos em `.claude/hooks/`. Rodam automaticamente via `.claude/settings.json`.
 
 ---
 
-## Plano de implementação — App macOS
+## Plano de implementação
 
-Plano completo em [`KURA-MVP-PLAN.md`](https://github.com/renatobardi/kura/blob/main/KURA-MVP-PLAN.md). Abaixo: tarefas do app macOS por fase.
+### Fase 0 — Fundação — 🟡 90% (aguardando Apple Developer)
+- [x] Projeto SwiftUI, macOS 14+, `NSApplicationActivationPolicy.accessory`
+- [x] `Info.plist`: `LSUIElement = YES`
+- [x] Design tokens: cores, tipografia, spacing em `Assets.xcassets` + `Theme.swift`
+- [x] `KeychainHelper.swift` — Security framework
+- [x] `AuthManager.swift` — Sign in with Apple + nonce
+- [x] `LoginView.swift`, `DashboardView.swift` (placeholder), `RootView.swift`
+- [x] Firebase SDK 12.14.0 via SPM (FirebaseAuth + FirebaseAnalytics)
+- [x] GitHub Actions CI
+- [ ] Registrar Bundle ID no Apple Developer Portal
+- [ ] Capability "Sign in with Apple" no App ID
+- [ ] Descomentar FirebaseApp.configure() + FirebaseAuth imports
 
-### Fase 0 — Fundação
-- [ ] Projeto SwiftUI novo, target macOS, `NSApplicationActivationPolicy.accessory` (menu bar, sem dock icon)
-- [ ] `Info.plist`: `LSUIElement = YES`
-- [ ] Design tokens: cores, tipografia, SF Symbols thin em `Design/Theme/`
-- [ ] Sign in with Apple → troca token Firebase → armazena no Keychain
-- [ ] Tela pós-login (placeholder)
-- [ ] GitHub Actions com macOS runner: build + testes
-
-**Critério de done:** app abre como menu bar, usuário faz login com Apple ID, CI verde.
-
-### Fase 1 — Chat
-- [ ] Sidebar com lista de chats
+### Fase 1 — Chat — 🔲 não iniciada
+- [ ] Sidebar com lista de chats (`NavigationSplitView`, 260px)
 - [ ] View de chat: composer, mensagens, streaming NDJSON
 - [ ] Chat anônimo (`/anon`)
 - [ ] Upload de arquivo (drag-and-drop)
 - [ ] Título editável + lock/unlock
 - [ ] Settings → AI & Models: configurar providers BYOS
+- [ ] `Core/API/ChannelClient.swift` — Phoenix Channels
 
 **Critério de done:** conversa fluindo, streaming visível, anexo sendo processado.
 
-### Fase 2 — Vault
+### Fase 2 — Vault — 🔲 não iniciada
 - [ ] View do vault: árvore de páginas, busca, página individual
 - [ ] Grafo de conhecimento (visualização)
 - [ ] Ask/RAG: input de query, resposta com citações linkáveis
-- [ ] Lapidação via chat: "ajusta isso na página X" → LLM aplica
+- [ ] Lapidação via chat
 
-**Critério de done:** ingerir, perguntar, ver resposta com citação.
-
-### Fase 3 — Collectors
-- [ ] Settings → Connections: conectar Google OAuth (Gmail + Drive)
-- [ ] Settings → Connections: adicionar RSS feed
-- [ ] `Collectors.LocalWatcher`: FSEvents detecta mudanças → envia ao backend via Phoenix Channel
+### Fase 3 — Collectors — 🔲 não iniciada
+- [ ] Settings → Connections: Google OAuth (Gmail + Drive)
+- [ ] Settings → Connections: RSS feed
+- [ ] `Collectors.LocalWatcher`: FSEvents → Phoenix Channel
 - [ ] Indicador no menu bar: collector ativo / erro
-- [ ] Exclusão por fonte: configuração conversacional
 
-### Fase 4 — Outputs & Inbox
-- [ ] Home view: dashboard diário (visual, SwiftUI nativo)
+### Fase 4 — Outputs & Inbox — 🔲 não iniciada
+- [ ] Dashboard diário (SwiftUI nativo)
 - [ ] Player de áudio do briefing
-- [ ] Inbox view: lista de items pendentes, interação conversacional
-- [ ] Badge no menu bar quando há items no Inbox
-- [ ] Push notifications recebidas + deep link para item
+- [ ] Inbox view + interação conversacional
+- [ ] Badge no menu bar
+- [ ] Push notifications + deep link
 
-**Critério de done:** abre app de manhã, vê dashboard, ouve briefing, trata Inbox.
+### Fase 5 — App Completo — 🔲 não iniciada
+- [ ] ⌘K command palette
+- [ ] Settings → Account / Privacy / Advanced (Doctor view)
+- [ ] Setup wizard + onboarding conduzido por Kura-chan
 
-### Fase 5 — App Completo
-- [ ] ⌘K command palette: busca + ações, resultados agrupados (Vaults / Chats / Files / Actions)
-- [ ] Settings → Account: dashboard de custo por período/tipo/total
-- [ ] Settings → Privacy: gerenciar regras de exclusão
-- [ ] Settings → Advanced: Doctor view (Kura-chan preocupada se componente vermelho)
-- [ ] Setup wizard completo conduzido por Kura-chan
-- [ ] Onboarding lúdico: LLM pergunta interesses e constrói ontologia
-- [ ] Folder sync: `iCloud Drive/Kura/Projects` + `Spaces/`
-
-### Fase 6 — Design, Polish & Ship
-- [ ] Design system completo: todos os tokens implementados como Color assets
-- [ ] Componentes SwiftUI: botões (primary/ghost/danger), cards, modais, toasts, tooltips, badges
-- [ ] Kura-chan: modelo vetorial (SwiftUI Canvas) + estados (pensando, trabalhando, feliz, dormindo, apologética, relaxando, esperando)
-- [ ] Splash screen noren (Metal/Canvas, física de tecido, só na 1ª abertura do dia)
-- [ ] Easter egg MVP: hanko stamp (save / promoção ao vault)
-- [ ] Build `.dmg` assinado (Apple Developer certificate) + notarização
-- [ ] Sparkle integrado (servidor de updates via GitHub Releases)
+### Fase 6 — Design, Polish & Ship — 🔲 não iniciada
+- [ ] Design system completo (botões, cards, modais, toasts, badges)
+- [ ] Kura-chan: Canvas vetorial + 7 estados animados
+- [ ] Splash noren (Metal/Canvas, física de tecido)
+- [ ] Hanko stamp easter egg
+- [ ] `.dmg` assinado + notarização Apple
+- [ ] Sparkle auto-update
 - [ ] XCUITest nos fluxos críticos
-
-**Critério de done:** .dmg instalável, auto-update funcionando, app parece produto premium.
 
 ### Fora do MVP — não implementar sem instrução explícita
 - iOS / iPadOS app
 - Microsoft OAuth (Outlook, OneDrive)
 - iCloud Mail / Drive
 - Vault por Space / Project
-- Egg universe pop culture completo (só hanko no MVP)
+- Egg universe pop culture completo
 - Weekly digest, entity profiles, deep dive áudio
 
 ---
@@ -230,31 +297,19 @@ fix/<slug>     — correção de bug
 hotfix/<slug>  — correção urgente em produção
 chore/<slug>   — infra, deps, config
 docs/<slug>    — documentação
-refactor/<slug>
-perf/<slug>
-test/<slug>
-ci/<slug>
+refactor/<slug> | perf/<slug> | test/<slug> | ci/<slug>
 ```
 
 ### Commits (Conventional Commits)
 ```
 type(scope): descrição em inglês, imperativo, ≤72 chars
-
-Tipos: feat, fix, docs, style, refactor, perf, test, chore, ci, build, revert
 ```
-
-Regras adicionais enforçadas pelo hook `commit-message`:
-- Descrição começa com **minúscula**
-- Descrição não termina com **ponto**
+- Descrição começa com **minúscula**, não termina com **ponto**
 - Body separado do subject por **linha em branco**
 
 ### Pull Requests
-- Título: `type(scope): descrição`
-- Body obrigatório:
-  ```
-  ## What
-  ## Why
-  ## How
-  ```
-- O hook `pr-standards` valida antes de `gh pr create`.
-- O hook `code-review-gate` valida antes de `gh pr merge`.
+```
+## What
+## Why
+## How
+```
