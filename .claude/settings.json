@@ -1,0 +1,83 @@
+{
+    "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Write|Edit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/secret-scanner.py",
+                        "statusMessage": "Scanning for secrets..."
+                    },
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/env-file-protection.py",
+                        "statusMessage": "Checking env file rules..."
+                    },
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/swift-keychain-enforcer.py",
+                        "statusMessage": "Checking Keychain compliance..."
+                    }
+                ]
+            },
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/env-file-protection.py",
+                        "statusMessage": "Checking git safety..."
+                    },
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/branch-taxonomy.py",
+                        "statusMessage": "Validating branch name..."
+                    },
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/commit-message.py",
+                        "statusMessage": "Validating commit message..."
+                    },
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/swift-commit-gate.py",
+                        "statusMessage": "Running Swift build check..."
+                    },
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/trivy-scanner.py",
+                        "statusMessage": "Running Trivy security scan..."
+                    },
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/sonarcloud.py",
+                        "statusMessage": "Running SonarCloud quality gate..."
+                    },
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/pr-standards.py",
+                        "statusMessage": "Validating PR title and body..."
+                    },
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/code-review-gate.py",
+                        "statusMessage": "Running AI code review..."
+                    }
+                ]
+            }
+        ],
+        "PostToolUse": [
+            {
+                "matcher": "Edit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/swift-format.py",
+                        "statusMessage": "Formatting Swift..."
+                    }
+                ]
+            }
+        ]
+    }
+}

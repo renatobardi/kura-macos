@@ -60,3 +60,17 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Secrets & certificates
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Mac
+.DS_Store
