@@ -107,10 +107,13 @@ xcodebuild test -scheme Kura -destination 'platform=macOS'
 xcodebuild build -scheme Kura -destination 'platform=macOS'
 
 # Formatar Swift (o hook swift-format faz automaticamente no Edit)
+# Requer: brew install swift-format
+# Cria .swift-format automaticamente (lineLength: 120, indentation: 4 spaces)
 swift-format --in-place Sources/**/*.swift
 
-# Debugar hook isoladamente
-python3 .claude/hooks/<hook>.py < event.json
+# Debugar hook isoladamente (stdin = JSON do evento Claude Code)
+echo '{"tool_name":"Edit","tool_input":{"file_path":"foo.swift","new_string":"..."}}' \
+  | python3 .claude/hooks/<hook>.py
 ```
 
 ---
@@ -128,7 +131,7 @@ Todos em `.claude/hooks/`. Rodam automaticamente via `.claude/settings.json`.
 | 5 | `branch-taxonomy` | PreToolUse | Bash | Bloqueia `git checkout -b` fora do padrão |
 | 6 | `commit-message` | PreToolUse | Bash | Enforce Conventional Commits |
 | 7 | `swift-commit-gate` | PreToolUse | Bash | Bloqueia commit se `xcodebuild test` falhar |
-| 8 | `trivy-scanner` | PreToolUse | Bash | Scan de segurança antes de push/deploy |
+| 8 | `trivy-scanner` | PreToolUse | Bash | Bloqueia deploy com CRITICAL/HIGH/MEDIUM; avisa em LOW |
 | 9 | `sonarcloud` | PreToolUse | Bash | Quality Gate antes de `gh pr create` |
 | 10 | `pr-standards` | PreToolUse | Bash | Valida título e body antes de `gh pr create` |
 | 11 | `code-review-gate` | PreToolUse | Bash | Code review via Claude antes de `gh pr merge` |
@@ -220,12 +223,13 @@ Plano completo em [`KURA-MVP-PLAN.md`](https://github.com/renatobardi/kura/blob/
 
 ### Branches
 ```
-main          — produção (.dmg + Sparkle), protegida
-develop       — integração
-feat/<slug>   — nova feature
-fix/<slug>    — correção de bug
-chore/<slug>  — infra, deps, config
-docs/<slug>   — documentação
+main           — produção (.dmg + Sparkle), protegida
+develop        — integração
+feat/<slug>    — nova feature
+fix/<slug>     — correção de bug
+hotfix/<slug>  — correção urgente em produção
+chore/<slug>   — infra, deps, config
+docs/<slug>    — documentação
 refactor/<slug>
 perf/<slug>
 test/<slug>
@@ -236,8 +240,13 @@ ci/<slug>
 ```
 type(scope): descrição em inglês, imperativo, ≤72 chars
 
-Tipos: feat, fix, docs, style, refactor, perf, test, chore, ci, revert
+Tipos: feat, fix, docs, style, refactor, perf, test, chore, ci, build, revert
 ```
+
+Regras adicionais enforçadas pelo hook `commit-message`:
+- Descrição começa com **minúscula**
+- Descrição não termina com **ponto**
+- Body separado do subject por **linha em branco**
 
 ### Pull Requests
 - Título: `type(scope): descrição`
