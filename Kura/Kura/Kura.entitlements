@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Sign in with Apple — requer Bundle ID registrado + capability habilitada no portal -->
+    <!-- TODO(fase-0): habilitar após aprovação da conta Apple Developer -->
+    <!--
+    <key>com.apple.developer.applesignin</key>
+    <array>
+        <string>Default</string>
+    </array>
+    -->
+
+    <!-- Sandbox desativada — distribuição via .dmg direto (não App Store) -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+
+    <!-- Hardened runtime necessário para notarização -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <false/>
+
+    <!-- Acesso à rede para Phoenix Channels + Firebase -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+</dict>
+</plist>
