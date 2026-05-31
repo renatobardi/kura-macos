@@ -4,7 +4,7 @@
 import AppKit
 import SwiftUI
 
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
 
@@ -33,14 +33,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let popover = NSPopover()
         popover.contentSize = NSSize(width: KuraLayout.popoverWidth, height: KuraLayout.popoverHeight)
         popover.behavior = .transient
-        if #available(macOS 26, *) {
-            // Nil appearance lets macOS 26 apply Liquid Glass chrome automatically
-            popover.appearance = nil
-        }
+        popover.delegate = self
         popover.contentViewController = NSHostingController(
             rootView: RootView()
         )
         self.popover = popover
+    }
+
+    // MARK: - NSPopoverDelegate
+
+    func popoverDidShow(_ notification: Notification) {
+        PopoverVisibility.shared.isShown = true
+    }
+
+    func popoverDidClose(_ notification: Notification) {
+        PopoverVisibility.shared.isShown = false
     }
 
     @objc private func togglePopover() {

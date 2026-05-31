@@ -6,8 +6,12 @@ import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject private var authManager: AuthManager
-    @State private var signOutTapped = false
+    @ObservedObject private var popoverVisibility = PopoverVisibility.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @State private var signOutTapped = false
+
+    private var motionEnabled: Bool { popoverVisibility.isShown && !reduceMotion }
 
     var body: some View {
         ZStack {
@@ -19,6 +23,13 @@ struct DashboardView: View {
                     .padding(.horizontal, KuraSpacing.xl)
                     .padding(.top, KuraSpacing.xl)
 
+                // Sem glass (macOS <26 ou Reduzir transparência), o divider provê a separação.
+                if !KuraGlass.isActive(reduceTransparency: reduceTransparency) {
+                    Divider()
+                        .background(Color.kuraDivider)
+                        .padding(.horizontal, KuraSpacing.xl)
+                }
+
                 // Placeholder fase 0
                 Spacer()
 
@@ -26,7 +37,7 @@ struct DashboardView: View {
                     Image(systemName: "sparkles")
                         .font(.system(size: 36, weight: .thin))
                         .foregroundStyle(Color.kuraAccent)
-                        .symbolEffect(.variableColor.iterative, isActive: true)
+                        .symbolEffect(.variableColor.iterative, isActive: motionEnabled)
 
                     Text("Em construção")
                         .font(KuraFont.headline)
@@ -44,9 +55,8 @@ struct DashboardView: View {
         .frame(width: KuraLayout.popoverWidth, height: KuraLayout.popoverHeight)
     }
 
-    @ViewBuilder
     private var header: some View {
-        let content = HStack {
+        HStack {
             VStack(alignment: .leading, spacing: KuraSpacing.xs) {
                 Text("Olá 👋")
                     .font(KuraFont.primaryMedium(size: 20))
@@ -69,16 +79,8 @@ struct DashboardView: View {
             .buttonStyle(.plain)
             .help("Sair")
         }
-
-        if #available(macOS 26, *), !reduceTransparency {
-            GlassEffectContainer {
-                content
-                    .padding(KuraSpacing.md)
-                    .glassEffect(.regular, in: .rect(cornerRadius: KuraLayout.cornerRadius))
-            }
-        } else {
-            content
-        }
+        .padding(KuraSpacing.md)
+        .kuraGlass()
     }
 }
 

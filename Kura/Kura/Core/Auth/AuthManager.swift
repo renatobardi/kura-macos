@@ -24,6 +24,8 @@ final class AuthManager: NSObject, ObservableObject {
 
     @Published var authState: AuthState = .unknown
 
+    private var pendingNonce: String?
+
     override private init() {
         super.init()
         Task { @MainActor in
@@ -43,18 +45,34 @@ final class AuthManager: NSObject, ObservableObject {
 
     // MARK: - Sign in with Apple
 
-    func completeSignIn(authorization: ASAuthorization, rawNonce: String) {
+    /// Gera o nonce PKCE e o anexa ao request. O nonce cru é guardado aqui (no
+    /// singleton persistente, não em @State de uma View) para sobreviver ao
+    /// teardown do popover transient entre o request e o completion.
+    func prepareSignInRequest(_ request: ASAuthorizationAppleIDRequest) {
+        let nonce = Self.randomNonce()
+        pendingNonce = nonce
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = Self.sha256(nonce)
+    }
+
+    func completeSignIn(authorization: ASAuthorization) {
         guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+            print("[AuthManager] completeSignIn: tipo de credencial inesperado")
+            return
+        }
+        guard pendingNonce != nil else {
+            print("[AuthManager] completeSignIn: nonce ausente — sign-in abortado")
             return
         }
 
         let userID = appleIDCredential.user
 
-        // TODO(fase-0): trocar token Apple por Firebase credential
-        // guard let appleIDToken = appleIDCredential.identityToken,
-        //       let idTokenString = String(data: appleIDToken, encoding: .utf8) else { return }
-        // let credential = OAuthProvider.appleCredential(withIDToken: idTokenString, rawNonce: rawNonce, fullName: appleIDCredential.fullName)
-        // Auth.auth().signIn(with: credential) { [weak self] result, error in ... }
+        // TODO(fase-0): trocar token Apple por Firebase credential.
+        //   let rawNonce = pendingNonce!  // hash deste valor foi enviado em request.nonce
+        //   guard let appleIDToken = appleIDCredential.identityToken,
+        //         let idTokenString = String(data: appleIDToken, encoding: .utf8) else { return }
+        //   let credential = OAuthProvider.appleCredential(withIDToken: idTokenString, rawNonce: rawNonce, fullName: appleIDCredential.fullName)
+        //   Auth.auth().signIn(with: credential) { [weak self] result, error in ... }
 
         do {
             try KeychainHelper.shared.saveAppleUserID(userID)
@@ -62,6 +80,7 @@ final class AuthManager: NSObject, ObservableObject {
         } catch {
             print("[AuthManager] Keychain save error: \(error)")
         }
+        pendingNonce = nil
     }
 
     // MARK: - Sign out
@@ -79,13 +98,23 @@ final class AuthManager: NSObject, ObservableObject {
     // MARK: - Nonce helpers (PKCE-style for Apple Auth)
 
     static func randomNonce(length: Int = 32) -> String {
-        var randomBytes = [UInt8](repeating: 0, count: length)
-        let result = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
-        guard result == errSecSuccess else {
-            fatalError("[AuthManager] Unable to generate nonce")
+        precondition(length > 0)
+        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
+        // Rejection sampling: descarta os bytes na cauda enviesada para que cada
+        // caractere seja equiprovável (charset tem 65 chars, que não divide 256).
+        let maxValid = UInt8(256 - (256 % charset.count) - 1)
+        var nonce = ""
+        nonce.reserveCapacity(length)
+        while nonce.count < length {
+            var byte: UInt8 = 0
+            guard SecRandomCopyBytes(kSecRandomDefault, 1, &byte) == errSecSuccess else {
+                fatalError("[AuthManager] Unable to generate nonce")
+            }
+            if byte <= maxValid {
+                nonce.append(charset[Int(byte) % charset.count])
+            }
         }
-        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        return String(randomBytes.map { charset[Int($0) % charset.count] })
+        return nonce
     }
 
     static func sha256(_ input: String) -> String {

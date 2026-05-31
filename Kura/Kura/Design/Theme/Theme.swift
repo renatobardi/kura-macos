@@ -75,7 +75,12 @@ struct KuraAdaptiveBackground: View {
 
 @available(macOS 15, *)
 struct KuraMeshBackground: View {
+    @ObservedObject private var popoverVisibility = PopoverVisibility.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animate = false
+
+    /// Anima apenas quando o popover está visível e o usuário não pediu menos movimento.
+    private var motionEnabled: Bool { popoverVisibility.isShown && !reduceMotion }
 
     var body: some View {
         MeshGradient(
@@ -87,21 +92,65 @@ struct KuraMeshBackground: View {
                 [0.0, 1.0], [0.5, 1.0], [1.0, 1.0],
             ],
             colors: [
+                // Tons escuros de profundidade (intencionalmente mais escuros que
+                // kuraBackground; não há token exato para estas sombras de mesh).
                 Color(red: 0.06, green: 0.06, blue: 0.10),
                 Color(red: 0.08, green: 0.08, blue: 0.14),
                 Color(red: 0.06, green: 0.06, blue: 0.10),
                 Color(red: 0.09, green: 0.09, blue: 0.14),
-                Color(red: 0.216, green: 0.188, blue: 0.639).opacity(0.14),
+                Color.kuraAccent.opacity(0.14),
                 Color(red: 0.09, green: 0.09, blue: 0.14),
                 Color(red: 0.07, green: 0.07, blue: 0.09),
                 Color(red: 0.09, green: 0.09, blue: 0.13),
                 Color(red: 0.07, green: 0.07, blue: 0.09),
             ]
         )
-        .onAppear {
-            withAnimation(.easeInOut(duration: 9).repeatForever(autoreverses: true)) {
-                animate = true
-            }
+        .animation(
+            motionEnabled
+                ? .easeInOut(duration: 9).repeatForever(autoreverses: true)
+                : .default,
+            value: animate
+        )
+        .onChange(of: motionEnabled, initial: true) { _, enabled in
+            animate = enabled
         }
+    }
+}
+
+// MARK: - Liquid Glass (macOS 26+)
+
+/// Fonte única de verdade para a decisão de aplicar Liquid Glass.
+/// Glass é macOS 26+ e é desativado sob "Reduzir transparência".
+enum KuraGlass {
+    static func isActive(reduceTransparency: Bool) -> Bool {
+        if #available(macOS 26, *), !reduceTransparency {
+            return true
+        }
+        return false
+    }
+}
+
+private struct KuraGlassModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let interactive: Bool
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26, *), !reduceTransparency {
+            content.glassEffect(
+                interactive ? .regular.interactive() : .regular,
+                in: .rect(cornerRadius: cornerRadius)
+            )
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// Aplica Liquid Glass na camada de navegação (macOS 26+, respeita Reduzir
+    /// transparência). Per Apple HIG: usar só em chrome de navegação, nunca em conteúdo.
+    func kuraGlass(interactive: Bool = false, cornerRadius: CGFloat = KuraLayout.cornerRadius) -> some View {
+        modifier(KuraGlassModifier(interactive: interactive, cornerRadius: cornerRadius))
     }
 }
