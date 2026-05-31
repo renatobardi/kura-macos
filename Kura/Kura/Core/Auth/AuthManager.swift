@@ -24,54 +24,61 @@ final class AuthManager: NSObject, ObservableObject {
 
     @Published var authState: AuthState = .unknown
 
-    private var currentNonce: String?
-
     override private init() {
         super.init()
-        restoreSession()
+        Task { @MainActor in
+            await restoreSession()
+        }
     }
 
     // MARK: - Session restore
 
-    private func restoreSession() {
-        do {
-            let userID = try KeychainHelper.shared.loadAppleUserID()
-            authState = .signedIn(userID: userID)
-        } catch {
-            authState = .signedOut
-        }
+    private func restoreSession() async {
+        let userID = await Task.detached(priority: .userInitiated) {
+            try? KeychainHelper.shared.loadAppleUserID()
+        }.value
+
+        authState = userID != nil ? .signedIn(userID: userID!) : .signedOut
     }
 
     // MARK: - Sign in with Apple
 
-    func startSignInWithApple() -> ASAuthorizationController {
-        let nonce = randomNonce()
-        currentNonce = nonce
+    func completeSignIn(authorization: ASAuthorization, rawNonce: String) {
+        guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+            return
+        }
 
-        let request = ASAuthorizationAppleIDProvider().createRequest()
-        request.requestedScopes = [.fullName, .email]
-        request.nonce = sha256(nonce)
+        let userID = appleIDCredential.user
 
-        let controller = ASAuthorizationController(authorizationRequests: [request])
-        controller.delegate = self
-        return controller
+        // TODO(fase-0): trocar token Apple por Firebase credential
+        // guard let appleIDToken = appleIDCredential.identityToken,
+        //       let idTokenString = String(data: appleIDToken, encoding: .utf8) else { return }
+        // let credential = OAuthProvider.appleCredential(withIDToken: idTokenString, rawNonce: rawNonce, fullName: appleIDCredential.fullName)
+        // Auth.auth().signIn(with: credential) { [weak self] result, error in ... }
+
+        do {
+            try KeychainHelper.shared.saveAppleUserID(userID)
+            authState = .signedIn(userID: userID)
+        } catch {
+            print("[AuthManager] Keychain save error: \(error)")
+        }
     }
 
     // MARK: - Sign out
 
     func signOut() {
+        try? KeychainHelper.shared.deleteFirebaseToken()
         do {
-            try KeychainHelper.shared.deleteFirebaseToken()
             try KeychainHelper.shared.delete(for: KeychainHelper.Keys.appleUserID)
         } catch {
-            print("[AuthManager] signOut keychain cleanup error: \(error)")
+            print("[AuthManager] signOut: failed to delete appleUserID from Keychain: \(error)")
         }
         authState = .signedOut
     }
 
     // MARK: - Nonce helpers (PKCE-style for Apple Auth)
 
-    private func randomNonce(length: Int = 32) -> String {
+    static func randomNonce(length: Int = 32) -> String {
         var randomBytes = [UInt8](repeating: 0, count: length)
         let result = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
         guard result == errSecSuccess else {
@@ -81,47 +88,9 @@ final class AuthManager: NSObject, ObservableObject {
         return String(randomBytes.map { charset[Int($0) % charset.count] })
     }
 
-    private func sha256(_ input: String) -> String {
+    static func sha256(_ input: String) -> String {
         let data = Data(input.utf8)
         let hash = SHA256.hash(data: data)
         return hash.compactMap { String(format: "%02x", $0) }.joined()
-    }
-}
-
-// MARK: - ASAuthorizationControllerDelegate
-
-extension AuthManager: ASAuthorizationControllerDelegate {
-    nonisolated func authorizationController(
-        controller: ASAuthorizationController,
-        didCompleteWithAuthorization authorization: ASAuthorization
-    ) {
-        guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
-            return
-        }
-
-        let userID = appleIDCredential.user
-
-        // TODO(fase-0): trocar token Apple por Firebase credential
-        // guard let nonce = currentNonce,
-        //       let appleIDToken = appleIDCredential.identityToken,
-        //       let idTokenString = String(data: appleIDToken, encoding: .utf8) else { return }
-        // let credential = OAuthProvider.appleCredential(withIDToken: idTokenString, rawNonce: nonce, fullName: appleIDCredential.fullName)
-        // Auth.auth().signIn(with: credential) { [weak self] result, error in ... }
-
-        Task { @MainActor in
-            do {
-                try KeychainHelper.shared.saveAppleUserID(userID)
-                self.authState = .signedIn(userID: userID)
-            } catch {
-                print("[AuthManager] Keychain save error: \(error)")
-            }
-        }
-    }
-
-    nonisolated func authorizationController(
-        controller: ASAuthorizationController,
-        didCompleteWithError error: Error
-    ) {
-        print("[AuthManager] Sign in with Apple error: \(error.localizedDescription)")
     }
 }

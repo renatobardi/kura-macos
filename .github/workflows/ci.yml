@@ -30,20 +30,9 @@ jobs:
             -scheme Kura \
             -project Kura.xcodeproj
 
-      - name: Build
-        run: |
-          cd Kura
-          xcodebuild build \
-            -scheme Kura \
-            -project Kura.xcodeproj \
-            -destination 'platform=macOS' \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            | xcpretty || true
-
       - name: Test
         run: |
+          set -o pipefail
           cd Kura
           xcodebuild test \
             -scheme Kura \
@@ -52,4 +41,4 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            | xcpretty || true
+            | xcpretty

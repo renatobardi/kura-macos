@@ -6,6 +6,7 @@ import AuthenticationServices
 
 struct LoginView: View {
     @EnvironmentObject private var authManager: AuthManager
+    @State private var pendingNonce: String?
 
     var body: some View {
         ZStack {
@@ -33,18 +34,22 @@ struct LoginView: View {
 
                 // Sign in with Apple
                 SignInWithAppleButton(.signIn) { request in
+                    let nonce = AuthManager.randomNonce()
+                    pendingNonce = nonce
                     request.requestedScopes = [.fullName, .email]
+                    request.nonce = AuthManager.sha256(nonce)
                 } onCompletion: { result in
                     switch result {
                     case .success(let authorization):
-                        handleAuthorization(authorization)
+                        guard let rawNonce = pendingNonce else { return }
+                        handleAuthorization(authorization, rawNonce: rawNonce)
                     case .failure(let error):
                         print("[LoginView] Sign in error: \(error.localizedDescription)")
                     }
                 }
                 .signInWithAppleButtonStyle(.white)
                 .frame(width: 280, height: 44)
-                .cornerRadius(KuraLayout.cornerRadius)
+                .clipShape(.rect(cornerRadius: KuraLayout.cornerRadius))
 
                 Text("Ao continuar, você concorda com os termos de uso.")
                     .font(KuraFont.micro)
@@ -57,19 +62,8 @@ struct LoginView: View {
         .frame(width: KuraLayout.popoverWidth, height: KuraLayout.popoverHeight)
     }
 
-    private func handleAuthorization(_ authorization: ASAuthorization) {
-        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
-            return
-        }
-        let userID = credential.user
-        Task { @MainActor in
-            do {
-                try KeychainHelper.shared.saveAppleUserID(userID)
-                authManager.authState = .signedIn(userID: userID)
-            } catch {
-                print("[LoginView] Keychain error: \(error)")
-            }
-        }
+    private func handleAuthorization(_ authorization: ASAuthorization, rawNonce: String) {
+        authManager.completeSignIn(authorization: authorization, rawNonce: rawNonce)
     }
 }
 

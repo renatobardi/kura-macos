@@ -31,7 +31,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let popover = NSPopover()
-        popover.contentSize = NSSize(width: 720, height: 520)
+        popover.contentSize = NSSize(width: KuraLayout.popoverWidth, height: KuraLayout.popoverHeight)
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(
             rootView: RootView()
