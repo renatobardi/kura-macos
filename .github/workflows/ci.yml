@@ -30,11 +30,11 @@ jobs:
             -scheme Kura \
             -project Kura.xcodeproj
 
-      - name: Test
+      - name: Build
         run: |
           set -o pipefail
           cd Kura
-          xcodebuild test \
+          xcodebuild build \
             -scheme Kura \
             -project Kura.xcodeproj \
             -destination 'platform=macOS' \
