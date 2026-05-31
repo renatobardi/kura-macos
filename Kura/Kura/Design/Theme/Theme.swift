@@ -136,7 +136,9 @@ private struct KuraGlassModifier: ViewModifier {
     let cornerRadius: CGFloat
 
     func body(content: Content) -> some View {
-        if #available(macOS 26, *), !reduceTransparency {
+        // A regra (transparência etc.) vive só em KuraGlass.isActive; o #available
+        // permanece lexical apenas para liberar o símbolo glassEffect no compilador.
+        if #available(macOS 26, *), KuraGlass.isActive(reduceTransparency: reduceTransparency) {
             content.glassEffect(
                 interactive ? .regular.interactive() : .regular,
                 in: .rect(cornerRadius: cornerRadius)

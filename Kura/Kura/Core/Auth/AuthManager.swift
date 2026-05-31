@@ -103,18 +103,21 @@ final class AuthManager: NSObject, ObservableObject {
         // Rejection sampling: descarta os bytes na cauda enviesada para que cada
         // caractere seja equiprovável (charset tem 65 chars, que não divide 256).
         let maxValid = UInt8(256 - (256 % charset.count) - 1)
-        var nonce = ""
+        var nonce: [Character] = []
         nonce.reserveCapacity(length)
         while nonce.count < length {
-            var byte: UInt8 = 0
-            guard SecRandomCopyBytes(kSecRandomDefault, 1, &byte) == errSecSuccess else {
+            // Gera o lote restante de uma vez (1 syscall por lote, ~76% de aceitação).
+            let needed = length - nonce.count
+            var bytes = [UInt8](repeating: 0, count: needed)
+            guard SecRandomCopyBytes(kSecRandomDefault, needed, &bytes) == errSecSuccess else {
                 fatalError("[AuthManager] Unable to generate nonce")
             }
-            if byte <= maxValid {
+            for byte in bytes where byte <= maxValid {
                 nonce.append(charset[Int(byte) % charset.count])
+                if nonce.count == length { break }
             }
         }
-        return nonce
+        return String(nonce)
     }
 
     static func sha256(_ input: String) -> String {

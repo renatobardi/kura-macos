@@ -4,6 +4,7 @@
 
 import Combine
 
+@MainActor
 final class PopoverVisibility: ObservableObject {
     static let shared = PopoverVisibility()
     @Published var isShown = false

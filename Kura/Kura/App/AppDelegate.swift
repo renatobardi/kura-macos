@@ -4,6 +4,7 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
