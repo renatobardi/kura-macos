@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "lineLength": 120,
+  "indentation": {
+    "spaces": 4
+  },
+  "maximumBlankLines": 1,
+  "respectsExistingLineBreaks": true,
+  "lineBreakBeforeControlFlowKeywords": true,
+  "lineBreakBeforeEachArgument": false,
+  "fileScopedDeclarationPrivacy": {
+    "accessLevel": "private"
+  },
+  "indentConditionalCompilationBlocks": true,
+  "indentSwitchCaseLabels": false,
+  "noAssignmentInExpressions": {
+    "allowedFunctions": []
+  },
+  "prioritizeKeepingFunctionOutputTogether": true
+}

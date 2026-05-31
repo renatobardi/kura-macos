@@ -6,10 +6,14 @@ import AuthenticationServices
 
 struct LoginView: View {
     @EnvironmentObject private var authManager: AuthManager
+    @ObservedObject private var popoverVisibility = PopoverVisibility.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var motionEnabled: Bool { popoverVisibility.isShown && !reduceMotion }
 
     var body: some View {
         ZStack {
-            Color.kuraBackground.ignoresSafeArea()
+            KuraAdaptiveBackground()
 
             VStack(spacing: KuraSpacing.xl) {
                 Spacer()
@@ -19,6 +23,7 @@ struct LoginView: View {
                     Image(systemName: "sparkles")
                         .font(.system(size: 48, weight: .thin))
                         .foregroundStyle(Color.kuraAccent)
+                        .symbolEffect(.pulse.byLayer, isActive: motionEnabled)
 
                     Text("Kura")
                         .font(KuraFont.primaryBold(size: 32))
@@ -31,20 +36,20 @@ struct LoginView: View {
 
                 Spacer()
 
-                // Sign in with Apple
+                // Sign in with Apple — botão de sistema, aparência inalterada (Apple HIG)
                 SignInWithAppleButton(.signIn) { request in
-                    request.requestedScopes = [.fullName, .email]
+                    authManager.prepareSignInRequest(request)
                 } onCompletion: { result in
                     switch result {
                     case .success(let authorization):
-                        handleAuthorization(authorization)
+                        authManager.completeSignIn(authorization: authorization)
                     case .failure(let error):
                         print("[LoginView] Sign in error: \(error.localizedDescription)")
                     }
                 }
                 .signInWithAppleButtonStyle(.white)
                 .frame(width: 280, height: 44)
-                .cornerRadius(KuraLayout.cornerRadius)
+                .clipShape(.rect(cornerRadius: KuraLayout.cornerRadius))
 
                 Text("Ao continuar, você concorda com os termos de uso.")
                     .font(KuraFont.micro)
@@ -55,21 +60,6 @@ struct LoginView: View {
             .padding(.horizontal, KuraSpacing.xxl)
         }
         .frame(width: KuraLayout.popoverWidth, height: KuraLayout.popoverHeight)
-    }
-
-    private func handleAuthorization(_ authorization: ASAuthorization) {
-        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
-            return
-        }
-        let userID = credential.user
-        Task { @MainActor in
-            do {
-                try KeychainHelper.shared.saveAppleUserID(userID)
-                authManager.authState = .signedIn(userID: userID)
-            } catch {
-                print("[LoginView] Keychain error: \(error)")
-            }
-        }
     }
 }
 

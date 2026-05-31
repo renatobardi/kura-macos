@@ -29,11 +29,17 @@ final class KeychainHelper {
 
     // MARK: - Save
 
-    @discardableResult
-    func save(_ value: String, for key: String) throws -> Bool {
+    func save(_ value: String, for key: String) throws {
         guard let data = value.data(using: .utf8) else {
             throw KeychainError.unexpectedData
         }
+
+        let deleteQuery: [String: Any] = [
+            kSecClass as String:       kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key
+        ]
+        SecItemDelete(deleteQuery as CFDictionary)
 
         let query: [String: Any] = [
             kSecClass as String:            kSecClassGenericPassword,
@@ -43,14 +49,10 @@ final class KeychainHelper {
             kSecAttrAccessible as String:   kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
 
-        // Delete existing before saving
-        SecItemDelete(query as CFDictionary)
-
         let status = SecItemAdd(query as CFDictionary, nil)
         guard status == errSecSuccess else {
             throw KeychainError.unhandledError(status: status)
         }
-        return true
     }
 
     // MARK: - Load
@@ -81,8 +83,7 @@ final class KeychainHelper {
 
     // MARK: - Delete
 
-    @discardableResult
-    func delete(for key: String) throws -> Bool {
+    func delete(for key: String) throws {
         let query: [String: Any] = [
             kSecClass as String:       kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -93,7 +94,6 @@ final class KeychainHelper {
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw KeychainError.unhandledError(status: status)
         }
-        return true
     }
 
     // MARK: - Convenience: Auth tokens

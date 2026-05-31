@@ -50,3 +50,109 @@ enum KuraLayout {
     static let popoverHeight: CGFloat = 520
     static let cornerRadius:  CGFloat = 10
 }
+
+// MARK: - Adaptive Background
+
+/// Fundo canônico do Kura — nunca usar Color.kuraBackground.ignoresSafeArea() direto nas views.
+/// macOS 26+: transparente (glass chrome automático do NSPopover visível)
+/// macOS 15–25: MeshGradient sutil com accent índigo
+/// macOS 14: kuraBackground sólido
+struct KuraAdaptiveBackground: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        if #available(macOS 26, *), !reduceTransparency {
+            Color.clear.ignoresSafeArea()
+        } else if #available(macOS 15, *), !reduceTransparency {
+            KuraMeshBackground().ignoresSafeArea()
+        } else {
+            Color.kuraBackground.ignoresSafeArea()
+        }
+    }
+}
+
+// MARK: - MeshGradient Background (macOS 15+)
+
+@available(macOS 15, *)
+struct KuraMeshBackground: View {
+    @ObservedObject private var popoverVisibility = PopoverVisibility.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var animate = false
+
+    /// Anima apenas quando o popover está visível e o usuário não pediu menos movimento.
+    private var motionEnabled: Bool { popoverVisibility.isShown && !reduceMotion }
+
+    var body: some View {
+        MeshGradient(
+            width: 3,
+            height: 3,
+            points: [
+                [0.0, 0.0], [0.5, 0.0], [1.0, 0.0],
+                [0.0, 0.5], [animate ? 0.55 : 0.45, 0.5], [1.0, 0.5],
+                [0.0, 1.0], [0.5, 1.0], [1.0, 1.0],
+            ],
+            colors: [
+                // Tons escuros de profundidade (intencionalmente mais escuros que
+                // kuraBackground; não há token exato para estas sombras de mesh).
+                Color(red: 0.06, green: 0.06, blue: 0.10),
+                Color(red: 0.08, green: 0.08, blue: 0.14),
+                Color(red: 0.06, green: 0.06, blue: 0.10),
+                Color(red: 0.09, green: 0.09, blue: 0.14),
+                Color.kuraAccent.opacity(0.14),
+                Color(red: 0.09, green: 0.09, blue: 0.14),
+                Color(red: 0.07, green: 0.07, blue: 0.09),
+                Color(red: 0.09, green: 0.09, blue: 0.13),
+                Color(red: 0.07, green: 0.07, blue: 0.09),
+            ]
+        )
+        .animation(
+            motionEnabled
+                ? .easeInOut(duration: 9).repeatForever(autoreverses: true)
+                : .default,
+            value: animate
+        )
+        .onChange(of: motionEnabled, initial: true) { _, enabled in
+            animate = enabled
+        }
+    }
+}
+
+// MARK: - Liquid Glass (macOS 26+)
+
+/// Fonte única de verdade para a decisão de aplicar Liquid Glass.
+/// Glass é macOS 26+ e é desativado sob "Reduzir transparência".
+enum KuraGlass {
+    static func isActive(reduceTransparency: Bool) -> Bool {
+        if #available(macOS 26, *), !reduceTransparency {
+            return true
+        }
+        return false
+    }
+}
+
+private struct KuraGlassModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let interactive: Bool
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        // A regra (transparência etc.) vive só em KuraGlass.isActive; o #available
+        // permanece lexical apenas para liberar o símbolo glassEffect no compilador.
+        if #available(macOS 26, *), KuraGlass.isActive(reduceTransparency: reduceTransparency) {
+            content.glassEffect(
+                interactive ? .regular.interactive() : .regular,
+                in: .rect(cornerRadius: cornerRadius)
+            )
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// Aplica Liquid Glass na camada de navegação (macOS 26+, respeita Reduzir
+    /// transparência). Per Apple HIG: usar só em chrome de navegação, nunca em conteúdo.
+    func kuraGlass(interactive: Bool = false, cornerRadius: CGFloat = KuraLayout.cornerRadius) -> some View {
+        modifier(KuraGlassModifier(interactive: interactive, cornerRadius: cornerRadius))
+    }
+}

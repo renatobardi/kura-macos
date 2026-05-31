@@ -6,39 +6,29 @@ import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject private var authManager: AuthManager
+    @ObservedObject private var popoverVisibility = PopoverVisibility.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @State private var signOutTapped = false
+
+    private var motionEnabled: Bool { popoverVisibility.isShown && !reduceMotion }
 
     var body: some View {
         ZStack {
-            Color.kuraBackground.ignoresSafeArea()
+            KuraAdaptiveBackground()
 
             VStack(spacing: KuraSpacing.xl) {
                 // Header
-                HStack {
-                    VStack(alignment: .leading, spacing: KuraSpacing.xs) {
-                        Text("Olá 👋")
-                            .font(KuraFont.primaryMedium(size: 20))
-                            .foregroundStyle(Color.kuraText)
-                        Text("O Kura está pronto.")
-                            .font(KuraFont.body)
-                            .foregroundStyle(Color.kuraTextMuted)
-                    }
-                    Spacer()
+                header
+                    .padding(.horizontal, KuraSpacing.xl)
+                    .padding(.top, KuraSpacing.xl)
 
-                    Button {
-                        authManager.signOut()
-                    } label: {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                            .font(.system(size: 14, weight: .thin))
-                            .foregroundStyle(Color.kuraTextMuted)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Sair")
+                // Sem glass (macOS <26 ou Reduzir transparência), o divider provê a separação.
+                if !KuraGlass.isActive(reduceTransparency: reduceTransparency) {
+                    Divider()
+                        .background(Color.kuraDivider)
+                        .padding(.horizontal, KuraSpacing.xl)
                 }
-                .padding(.horizontal, KuraSpacing.xl)
-                .padding(.top, KuraSpacing.xl)
-
-                Divider()
-                    .background(Color.kuraDivider)
 
                 // Placeholder fase 0
                 Spacer()
@@ -47,6 +37,7 @@ struct DashboardView: View {
                     Image(systemName: "sparkles")
                         .font(.system(size: 36, weight: .thin))
                         .foregroundStyle(Color.kuraAccent)
+                        .symbolEffect(.variableColor.iterative, isActive: motionEnabled)
 
                     Text("Em construção")
                         .font(KuraFont.headline)
@@ -62,6 +53,34 @@ struct DashboardView: View {
             }
         }
         .frame(width: KuraLayout.popoverWidth, height: KuraLayout.popoverHeight)
+    }
+
+    private var header: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: KuraSpacing.xs) {
+                Text("Olá 👋")
+                    .font(KuraFont.primaryMedium(size: 20))
+                    .foregroundStyle(Color.kuraText)
+                Text("O Kura está pronto.")
+                    .font(KuraFont.body)
+                    .foregroundStyle(Color.kuraTextMuted)
+            }
+            Spacer()
+
+            Button {
+                signOutTapped.toggle()
+                authManager.signOut()
+            } label: {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .font(.system(size: 14, weight: .thin))
+                    .foregroundStyle(Color.kuraTextMuted)
+                    .symbolEffect(.bounce, value: signOutTapped)
+            }
+            .buttonStyle(.plain)
+            .help("Sair")
+        }
+        .padding(KuraSpacing.md)
+        .kuraGlass()
     }
 }
 

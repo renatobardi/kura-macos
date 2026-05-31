@@ -10,9 +10,15 @@ struct RootView: View {
         Group {
             switch authManager.authState {
             case .unknown:
-                // Breve flash enquanto Keychain é consultado
-                Color.kuraBackground
-                    .frame(width: KuraLayout.popoverWidth, height: KuraLayout.popoverHeight)
+                // Estado breve durante o restore async do Keychain — mostra a marca
+                // em vez de um popover vazio (no macOS 26 o fundo é o glass do OS).
+                ZStack {
+                    KuraAdaptiveBackground()
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 36, weight: .thin))
+                        .foregroundStyle(Color.kuraAccent)
+                }
+                .frame(width: KuraLayout.popoverWidth, height: KuraLayout.popoverHeight)
             case .signedOut:
                 LoginView()
                     .environmentObject(authManager)
@@ -21,7 +27,6 @@ struct RootView: View {
                     .environmentObject(authManager)
             }
         }
-        .background(Color.kuraBackground)
     }
 }
 

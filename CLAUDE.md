@@ -11,52 +11,43 @@ Este repositório contém **exclusivamente o app macOS** do projeto Kura.
 
 ---
 
-## Estado atual — Fase 0 em 90%
+## Estado atual — Fase 0 em 99%
 
-> Última atualização: 2026-05-30
+> Última atualização: 2026-05-31
 
-### ✅ Implementado (commit `feat(foundation): implement phase 0` — `main`)
+O projeto está code-complete na Fase 0. A única pendência é burocrática (aprovação da conta Apple Developer).
+
+### ✅ Implementado
 
 - Projeto Xcode criado: macOS 14+, SwiftUI, Bundle ID `pro.oute.kura`
 - Menu bar app: `NSApplicationActivationPolicy.accessory`, `LSUIElement = YES`
-- Design tokens: 9 cores em `Assets.xcassets` + `Theme.swift` (KuraFont, KuraSpacing, KuraLayout)
-- `KeychainHelper.swift` — Security framework, nunca UserDefaults
-- `AuthManager.swift` — Sign in with Apple + SHA256 nonce (Firebase stub comentado aguardando capability)
-- `LoginView.swift`, `DashboardView.swift` (placeholder), `RootView.swift`
-- Firebase SDK 12.14.0 via SPM: FirebaseAuth + FirebaseAnalytics
-- `GoogleService-Info.plist` no projeto (Firebase project: `oute-kura`)
-- `.github/workflows/ci.yml` — GitHub Actions build + test
-- Build: **0 errors, 0 warnings**
+- Design tokens: 9 cores em `Assets.xcassets` + `Theme.swift`
+- `KeychainHelper.swift` — Security framework, `save()`/`delete()` retornam `Void` (throws sinaliza falha)
+- `AuthManager.swift` — `completeSignIn(authorization:rawNonce:)` centraliza toda a lógica pós-auth; `restoreSession()` é async com Keychain off main thread
+- `LoginView.swift` — gera nonce PKCE, seta `request.nonce`, delega resultado para `AuthManager.completeSignIn`
+- Views básicas: `LoginView`, `DashboardView` (placeholder), `RootView`
+- Firebase SDK via SPM: FirebaseAuth + FirebaseAnalytics
+- **Remediação de segurança completa:** chave rotacionada, `GoogleService-Info.plist` é template, CI usa GitHub Secrets, histórico limpo
+- CI: step de build redundante removido, `set -o pipefail` garante falhas reais quebram o CI
+- `README.md` completo criado
 
-### ⏳ Pendente — aguardando Apple Developer Account aprovar (~2 dias)
+### ⏳ Pendente — aguardando Apple Developer Account aprovar
 
-A conta Apple Developer foi criada como **Individual / Sole Proprietor** e está em aprovação.
-Quando aprovar, fazer em ordem:
+A única pendência para concluir a Fase 0 é a aprovação da conta Apple Developer (Individual / Sole Proprietor).
+Quando aprovar, seguir os passos abaixo:
 
 **1. Portal Apple Developer** ([developer.apple.com](https://developer.apple.com))
-- Certificates, Identifiers & Profiles → criar App ID com Bundle ID `pro.oute.kura`
-- Habilitar capability **"Sign in with Apple"** no App ID
+- Criar App ID com Bundle ID `pro.oute.kura`.
+- Habilitar capability **"Sign in with Apple"**.
 
-**2. Firebase Console** ([console.firebase.google.com](https://console.firebase.google.com) → projeto `oute-kura`)
-- Authentication → Sign-in method → Apple → adicionar Return URL:
-  `https://oute-kura.firebaseapp.com/__/auth/handler`
+**2. Xcode**
+- Target Kura → Signing & Capabilities → `+` → **Sign in with Apple**.
 
-**3. Xcode**
-- Target Kura → Signing & Capabilities → `+` → **Sign in with Apple**
-- Isso atualiza `Kura/Kura/Kura.entitlements` automaticamente
+**3. Código — Descomentar**
+- Em `App/AppDelegate.swift`: `FirebaseApp.configure()`.
+- Em `Core/Auth/AuthManager.swift`: `import FirebaseAuth` e o bloco Firebase em `completeSignIn(authorization:rawNonce:)` (linhas ~53–57).
 
-**4. Código — descomentar em `App/AppDelegate.swift`:**
-```swift
-import FirebaseCore          // adicionar import
-// FirebaseApp.configure()   // remover //
-```
-**E em `Core/Auth/AuthManager.swift`:**
-```swift
-// import FirebaseAuth       // remover //
-```
-E descomentar o bloco Firebase credential em `authorizationController(didCompleteWithAuthorization:)` (linhas ~95-99)
-
-**Critério de done da Fase 0:** app abre como menu bar, usuário faz login com Apple ID, CI verde.
+**Critério de done da Fase 0:** app abre como menu bar, usuário faz login com Apple ID, CI verde, popover com Liquid Glass no macOS 26, MeshGradient no macOS 15–25, solid no macOS 14.
 
 ---
 
@@ -66,6 +57,7 @@ E descomentar o bloco Firebase credential em `authorizationController(didComplet
 |---|---|
 | Plataforma | macOS 14+ |
 | UI | SwiftUI (`NSApplicationActivationPolicy.accessory` — menu bar) |
+| Design System | Liquid Glass (macOS 26+), MeshGradient (macOS 15+), SymbolEffect (macOS 14+) |
 | Auth | Firebase Auth + Sign in with Apple |
 | Notificações | FCM → APNs |
 | Keychain | Security framework — tokens sempre aqui, nunca UserDefaults |
@@ -104,7 +96,7 @@ kura-macos/
         │   ├── Search/                 # vazio — Fase 5
         │   └── Settings/              # vazio — Fase 1
         ├── Assets.xcassets/            # 9 color tokens + AppIcon
-        ├── GoogleService-Info.plist
+        ├── GoogleService-Info.plist    # AGORA É UM TEMPLATE
         ├── Info.plist                  # LSUIElement=YES, macOS 14+
         ├── Kura.entitlements           # sandbox=NO, network=YES
         └── RootView.swift              # roteador authState → login | dashboard
@@ -112,7 +104,7 @@ kura-macos/
 
 ---
 
-## Decisões técnicas desta sessão
+## Decisões técnicas
 
 | Decisão | Motivo |
 |---------|--------|
@@ -122,6 +114,15 @@ kura-macos/
 | `PBXFileSystemSynchronizedRootGroup` | Xcode 16+ — arquivos adicionados ao disco são reconhecidos automaticamente |
 | Firebase imports comentados | Aguardando Sign in with Apple capability para ativar |
 | Team ID `69VJAKBZ5W` | Personal Team — muda para o Team ID correto após aprovação da conta Developer |
+| Auth via `completeSignIn(authorization:rawNonce:)` | `LoginView` gera o nonce PKCE e seta `request.nonce`; delega tudo para `AuthManager.completeSignIn`. Para ativar Firebase: descomentar o bloco em `completeSignIn` — o `rawNonce` já está disponível no parâmetro. |
+| `restoreSession()` async | Keychain lido via `Task.detached` fora da main thread. O estado `.unknown` em `RootView` é real — a UI renderiza antes do Keychain responder. |
+| `KuraAdaptiveBackground` como view canônica de fundo | Único ponto de decisão por versão: `Color.clear` (macOS 26 — glass do OS visível), `MeshGradient` sutil (macOS 15–25), `kuraBackground` sólido (macOS 14). Inclui guard `accessibilityReduceTransparency`. |
+| Glass apenas na camada de navegação | Regra Apple: `glassEffect` em toolbars, botões flutuantes, sheets e popovers — **nunca** em listas, texto ou conteúdo. |
+| `GlassEffectContainer` para múltiplos elementos glass | Glass não pode samplear outro glass — o container coordena a composição e habilita transições morfing via `glassEffectID`. |
+| `@available(macOS 26, *)` guards para glass | macOS 14 é o floor; `glassEffect` e `GlassEffectContainer` só existem no macOS 26. SymbolEffect e MeshGradient têm floors próprios (14 e 15). |
+| **Remediação de Chave Exposta** | Uma chave do Firebase foi exposta no histórico do Git, exigindo uma remediação completa para garantir a segurança do projeto. |
+| **Uso de `git-filter-repo`** | Ferramenta escolhida para limpar o histórico do Git, removendo permanentemente a chave exposta de todos os commits. |
+
 
 ---
 
@@ -134,6 +135,8 @@ kura-macos/
 | Firebase Auth callback | `https://oute-kura.firebaseapp.com/__/auth/handler` |
 | Apple Developer | Individual / Sole Proprietor (aprovação pendente) |
 | Team ID (Personal) | `69VJAKBZ5W` |
+| **GitHub Secrets** | `FIREBASE_API_KEY`, `GCM_SENDER_ID`, `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `GOOGLE_APP_ID` |
+
 
 ---
 
@@ -144,6 +147,13 @@ kura-macos/
 - `NavigationSplitView` para layout sidebar + conteúdo. Sidebar: 260px.
 - SF Symbols weight **thin** em todos os ícones.
 - `prefers-reduced-motion` respeitado em todas as animações.
+
+### Liquid Glass (macOS 26+)
+- `KuraAdaptiveBackground()` é o único fundo de view permitido — nunca `Color.kuraBackground.ignoresSafeArea()` direto.
+- Glass pertence à **camada de navegação**: toolbar, botões flutuantes, header, sheets. Nunca em listas, chat ou conteúdo.
+- Múltiplos elementos glass sempre dentro de `GlassEffectContainer` — glass não pode samplear outro glass.
+- Toda aplicação de `glassEffect` deve checar `@Environment(\.accessibilityReduceTransparency)` e usar `.identity` como fallback.
+- SymbolEffect (macOS 14+) e MeshGradient (macOS 15+) não precisam de guard de disponibilidade separado — `KuraAdaptiveBackground` resolve o branching.
 
 ### Segurança — Keychain obrigatório
 - Tokens, credenciais e dados sensíveis **sempre** no Keychain via Security framework.
@@ -177,17 +187,17 @@ Hiragino Sans como tipografia primária (não fallback) em todos os textos.
 ## Comandos
 
 ```bash
-# Build
-cd Kura && xcodebuild build \
-  -scheme Kura -project Kura.xcodeproj \
+# Build (sempre da raiz do repo — nunca usar cd Kura)
+xcodebuild build \
+  -scheme Kura -project Kura/Kura.xcodeproj \
   -destination 'platform=macOS' \
-  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
 # Testes
-cd Kura && xcodebuild test \
-  -scheme Kura -project Kura.xcodeproj \
+xcodebuild test \
+  -scheme Kura -project Kura/Kura.xcodeproj \
   -destination 'platform=macOS' \
-  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
 # Formatar Swift
 swift-format --in-place Kura/Kura/**/*.swift
@@ -219,15 +229,25 @@ Todos em `.claude/hooks/`. Rodam automaticamente via `.claude/settings.json`.
 
 ## Plano de implementação
 
-### Fase 0 — Fundação — 🟡 90% (aguardando Apple Developer)
+### Fase 0 — Fundação — 🟢 99% (aguardando Apple Developer)
 - [x] Projeto SwiftUI, macOS 14+, `NSApplicationActivationPolicy.accessory`
 - [x] `Info.plist`: `LSUIElement = YES`
 - [x] Design tokens: cores, tipografia, spacing em `Assets.xcassets` + `Theme.swift`
 - [x] `KeychainHelper.swift` — Security framework
-- [x] `AuthManager.swift` — Sign in with Apple + nonce
-- [x] `LoginView.swift`, `DashboardView.swift` (placeholder), `RootView.swift`
+- [x] `AuthManager.swift` — `completeSignIn(authorization:rawNonce:)` + `restoreSession()` async
+- [x] `LoginView.swift` — nonce PKCE correto, delega para `AuthManager`
+- [x] `DashboardView.swift` (placeholder), `RootView.swift`
 - [x] Firebase SDK 12.14.0 via SPM (FirebaseAuth + FirebaseAnalytics)
-- [x] GitHub Actions CI
+- [x] GitHub Actions CI com `set -o pipefail`
+- [x] **Segurança:** Chave de API rotacionada, restrita e removida do histórico do Git.
+- [x] **Documentação:** README.md abrangente criado.
+- [ ] `KuraAdaptiveBackground` em `Theme.swift` — glass (macOS 26) / MeshGradient (macOS 15–25) / solid (macOS 14) com guard `accessibilityReduceTransparency`
+- [ ] `popover.appearance = nil` em `AppDelegate` para macOS 26 — desbloqueia chrome glass automático do NSPopover
+- [ ] Substituir fundos sólidos por `KuraAdaptiveBackground()` em `LoginView`, `DashboardView`, `RootView`
+- [ ] `GlassEffectContainer` + `.glassEffect(.regular.interactive())` no botão Sign in with Apple (`LoginView`)
+- [ ] `GlassEffectContainer` + `.glassEffect(.regular.interactive())` no botão sign-out do header (`DashboardView`)
+- [ ] `.symbolEffect(.pulse.byLayer)` no ícone sparkles da `LoginView`
+- [ ] `.symbolEffect(.variableColor.iterative)` no ícone sparkles da `DashboardView`, `.symbolEffect(.bounce, value:)` no sign-out
 - [ ] Registrar Bundle ID no Apple Developer Portal
 - [ ] Capability "Sign in with Apple" no App ID
 - [ ] Descomentar FirebaseApp.configure() + FirebaseAuth imports
@@ -240,6 +260,10 @@ Todos em `.claude/hooks/`. Rodam automaticamente via `.claude/settings.json`.
 - [ ] Título editável + lock/unlock
 - [ ] Settings → AI & Models: configurar providers BYOS
 - [ ] `Core/API/ChannelClient.swift` — Phoenix Channels
+- [ ] `GlassEffectContainer` + `.glassEffect()` na toolbar de ações rápidas do chat
+- [ ] `.buttonStyle(.glass)` / `.buttonStyle(.glassProminent)` nos botões do composer
+- [ ] `.hardScrollEdgeEffect` no `ScrollView` da lista de mensagens
+- [ ] `.symbolEffect(.rotate, isActive: isLoading)` no indicador de streaming NDJSON
 
 **Critério de done:** conversa fluindo, streaming visível, anexo sendo processado.
 
@@ -272,6 +296,11 @@ Todos em `.claude/hooks/`. Rodam automaticamente via `.claude/settings.json`.
 - [ ] Kura-chan: Canvas vetorial + 7 estados animados
 - [ ] Splash noren (Metal/Canvas, física de tecido)
 - [ ] Hanko stamp easter egg
+- [ ] `glassEffectID` + `glassEffectTransition(.materialize)` — transições morfing entre elementos glass
+- [ ] `glassEffectUnion` para agrupar elementos glass distantes
+- [ ] `backgroundExtensionEffect()` no popover — continuidade visual nas bordas
+- [ ] `.symbolEffect(.variableColor.iterative.dimInactiveLayers, isActive: hasUnread)` no menu bar icon (badge sem dot)
+- [ ] Audit de accessibility: todos os `glassEffect` testados com `Reduce Transparency` ativo
 - [ ] `.dmg` assinado + notarização Apple
 - [ ] Sparkle auto-update
 - [ ] XCUITest nos fluxos críticos
