@@ -50,3 +50,58 @@ enum KuraLayout {
     static let popoverHeight: CGFloat = 520
     static let cornerRadius:  CGFloat = 10
 }
+
+// MARK: - Adaptive Background
+
+/// Fundo canônico do Kura — nunca usar Color.kuraBackground.ignoresSafeArea() direto nas views.
+/// macOS 26+: transparente (glass chrome automático do NSPopover visível)
+/// macOS 15–25: MeshGradient sutil com accent índigo
+/// macOS 14: kuraBackground sólido
+struct KuraAdaptiveBackground: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        if #available(macOS 26, *), !reduceTransparency {
+            Color.clear.ignoresSafeArea()
+        } else if #available(macOS 15, *), !reduceTransparency {
+            KuraMeshBackground().ignoresSafeArea()
+        } else {
+            Color.kuraBackground.ignoresSafeArea()
+        }
+    }
+}
+
+// MARK: - MeshGradient Background (macOS 15+)
+
+@available(macOS 15, *)
+struct KuraMeshBackground: View {
+    @State private var animate = false
+
+    var body: some View {
+        MeshGradient(
+            width: 3,
+            height: 3,
+            points: [
+                [0.0, 0.0], [0.5, 0.0], [1.0, 0.0],
+                [0.0, 0.5], [animate ? 0.55 : 0.45, 0.5], [1.0, 0.5],
+                [0.0, 1.0], [0.5, 1.0], [1.0, 1.0],
+            ],
+            colors: [
+                Color(red: 0.06, green: 0.06, blue: 0.10),
+                Color(red: 0.08, green: 0.08, blue: 0.14),
+                Color(red: 0.06, green: 0.06, blue: 0.10),
+                Color(red: 0.09, green: 0.09, blue: 0.14),
+                Color(red: 0.216, green: 0.188, blue: 0.639).opacity(0.14),
+                Color(red: 0.09, green: 0.09, blue: 0.14),
+                Color(red: 0.07, green: 0.07, blue: 0.09),
+                Color(red: 0.09, green: 0.09, blue: 0.13),
+                Color(red: 0.07, green: 0.07, blue: 0.09),
+            ]
+        )
+        .onAppear {
+            withAnimation(.easeInOut(duration: 9).repeatForever(autoreverses: true)) {
+                animate = true
+            }
+        }
+    }
+}

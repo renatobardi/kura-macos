@@ -10,8 +10,7 @@ struct RootView: View {
         Group {
             switch authManager.authState {
             case .unknown:
-                // Breve flash enquanto Keychain é consultado
-                Color.kuraBackground
+                KuraAdaptiveBackground()
                     .frame(width: KuraLayout.popoverWidth, height: KuraLayout.popoverHeight)
             case .signedOut:
                 LoginView()
@@ -21,7 +20,6 @@ struct RootView: View {
                     .environmentObject(authManager)
             }
         }
-        .background(Color.kuraBackground)
     }
 }
 

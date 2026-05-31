@@ -47,7 +47,7 @@ Quando aprovar, seguir os passos abaixo:
 - Em `App/AppDelegate.swift`: `FirebaseApp.configure()`.
 - Em `Core/Auth/AuthManager.swift`: `import FirebaseAuth` e o bloco Firebase em `completeSignIn(authorization:rawNonce:)` (linhas ~53–57).
 
-**Critério de done da Fase 0:** app abre como menu bar, usuário faz login com Apple ID, CI verde.
+**Critério de done da Fase 0:** app abre como menu bar, usuário faz login com Apple ID, CI verde, popover com Liquid Glass no macOS 26, MeshGradient no macOS 15–25, solid no macOS 14.
 
 ---
 
@@ -57,6 +57,7 @@ Quando aprovar, seguir os passos abaixo:
 |---|---|
 | Plataforma | macOS 14+ |
 | UI | SwiftUI (`NSApplicationActivationPolicy.accessory` — menu bar) |
+| Design System | Liquid Glass (macOS 26+), MeshGradient (macOS 15+), SymbolEffect (macOS 14+) |
 | Auth | Firebase Auth + Sign in with Apple |
 | Notificações | FCM → APNs |
 | Keychain | Security framework — tokens sempre aqui, nunca UserDefaults |
@@ -115,6 +116,10 @@ kura-macos/
 | Team ID `69VJAKBZ5W` | Personal Team — muda para o Team ID correto após aprovação da conta Developer |
 | Auth via `completeSignIn(authorization:rawNonce:)` | `LoginView` gera o nonce PKCE e seta `request.nonce`; delega tudo para `AuthManager.completeSignIn`. Para ativar Firebase: descomentar o bloco em `completeSignIn` — o `rawNonce` já está disponível no parâmetro. |
 | `restoreSession()` async | Keychain lido via `Task.detached` fora da main thread. O estado `.unknown` em `RootView` é real — a UI renderiza antes do Keychain responder. |
+| `KuraAdaptiveBackground` como view canônica de fundo | Único ponto de decisão por versão: `Color.clear` (macOS 26 — glass do OS visível), `MeshGradient` sutil (macOS 15–25), `kuraBackground` sólido (macOS 14). Inclui guard `accessibilityReduceTransparency`. |
+| Glass apenas na camada de navegação | Regra Apple: `glassEffect` em toolbars, botões flutuantes, sheets e popovers — **nunca** em listas, texto ou conteúdo. |
+| `GlassEffectContainer` para múltiplos elementos glass | Glass não pode samplear outro glass — o container coordena a composição e habilita transições morfing via `glassEffectID`. |
+| `@available(macOS 26, *)` guards para glass | macOS 14 é o floor; `glassEffect` e `GlassEffectContainer` só existem no macOS 26. SymbolEffect e MeshGradient têm floors próprios (14 e 15). |
 | **Remediação de Chave Exposta** | Uma chave do Firebase foi exposta no histórico do Git, exigindo uma remediação completa para garantir a segurança do projeto. |
 | **Uso de `git-filter-repo`** | Ferramenta escolhida para limpar o histórico do Git, removendo permanentemente a chave exposta de todos os commits. |
 
@@ -142,6 +147,13 @@ kura-macos/
 - `NavigationSplitView` para layout sidebar + conteúdo. Sidebar: 260px.
 - SF Symbols weight **thin** em todos os ícones.
 - `prefers-reduced-motion` respeitado em todas as animações.
+
+### Liquid Glass (macOS 26+)
+- `KuraAdaptiveBackground()` é o único fundo de view permitido — nunca `Color.kuraBackground.ignoresSafeArea()` direto.
+- Glass pertence à **camada de navegação**: toolbar, botões flutuantes, header, sheets. Nunca em listas, chat ou conteúdo.
+- Múltiplos elementos glass sempre dentro de `GlassEffectContainer` — glass não pode samplear outro glass.
+- Toda aplicação de `glassEffect` deve checar `@Environment(\.accessibilityReduceTransparency)` e usar `.identity` como fallback.
+- SymbolEffect (macOS 14+) e MeshGradient (macOS 15+) não precisam de guard de disponibilidade separado — `KuraAdaptiveBackground` resolve o branching.
 
 ### Segurança — Keychain obrigatório
 - Tokens, credenciais e dados sensíveis **sempre** no Keychain via Security framework.
@@ -229,6 +241,13 @@ Todos em `.claude/hooks/`. Rodam automaticamente via `.claude/settings.json`.
 - [x] GitHub Actions CI com `set -o pipefail`
 - [x] **Segurança:** Chave de API rotacionada, restrita e removida do histórico do Git.
 - [x] **Documentação:** README.md abrangente criado.
+- [ ] `KuraAdaptiveBackground` em `Theme.swift` — glass (macOS 26) / MeshGradient (macOS 15–25) / solid (macOS 14) com guard `accessibilityReduceTransparency`
+- [ ] `popover.appearance = nil` em `AppDelegate` para macOS 26 — desbloqueia chrome glass automático do NSPopover
+- [ ] Substituir fundos sólidos por `KuraAdaptiveBackground()` em `LoginView`, `DashboardView`, `RootView`
+- [ ] `GlassEffectContainer` + `.glassEffect(.regular.interactive())` no botão Sign in with Apple (`LoginView`)
+- [ ] `GlassEffectContainer` + `.glassEffect(.regular.interactive())` no botão sign-out do header (`DashboardView`)
+- [ ] `.symbolEffect(.pulse.byLayer)` no ícone sparkles da `LoginView`
+- [ ] `.symbolEffect(.variableColor.iterative)` no ícone sparkles da `DashboardView`, `.symbolEffect(.bounce, value:)` no sign-out
 - [ ] Registrar Bundle ID no Apple Developer Portal
 - [ ] Capability "Sign in with Apple" no App ID
 - [ ] Descomentar FirebaseApp.configure() + FirebaseAuth imports
@@ -241,6 +260,10 @@ Todos em `.claude/hooks/`. Rodam automaticamente via `.claude/settings.json`.
 - [ ] Título editável + lock/unlock
 - [ ] Settings → AI & Models: configurar providers BYOS
 - [ ] `Core/API/ChannelClient.swift` — Phoenix Channels
+- [ ] `GlassEffectContainer` + `.glassEffect()` na toolbar de ações rápidas do chat
+- [ ] `.buttonStyle(.glass)` / `.buttonStyle(.glassProminent)` nos botões do composer
+- [ ] `.hardScrollEdgeEffect` no `ScrollView` da lista de mensagens
+- [ ] `.symbolEffect(.rotate, isActive: isLoading)` no indicador de streaming NDJSON
 
 **Critério de done:** conversa fluindo, streaming visível, anexo sendo processado.
 
@@ -273,6 +296,11 @@ Todos em `.claude/hooks/`. Rodam automaticamente via `.claude/settings.json`.
 - [ ] Kura-chan: Canvas vetorial + 7 estados animados
 - [ ] Splash noren (Metal/Canvas, física de tecido)
 - [ ] Hanko stamp easter egg
+- [ ] `glassEffectID` + `glassEffectTransition(.materialize)` — transições morfing entre elementos glass
+- [ ] `glassEffectUnion` para agrupar elementos glass distantes
+- [ ] `backgroundExtensionEffect()` no popover — continuidade visual nas bordas
+- [ ] `.symbolEffect(.variableColor.iterative.dimInactiveLayers, isActive: hasUnread)` no menu bar icon (badge sem dot)
+- [ ] Audit de accessibility: todos os `glassEffect` testados com `Reduce Transparency` ativo
 - [ ] `.dmg` assinado + notarização Apple
 - [ ] Sparkle auto-update
 - [ ] XCUITest nos fluxos críticos

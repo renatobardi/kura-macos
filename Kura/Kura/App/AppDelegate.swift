@@ -33,6 +33,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let popover = NSPopover()
         popover.contentSize = NSSize(width: KuraLayout.popoverWidth, height: KuraLayout.popoverHeight)
         popover.behavior = .transient
+        if #available(macOS 26, *) {
+            // Nil appearance lets macOS 26 apply Liquid Glass chrome automatically
+            popover.appearance = nil
+        }
         popover.contentViewController = NSHostingController(
             rootView: RootView()
         )

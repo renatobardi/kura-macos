@@ -6,39 +6,18 @@ import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject private var authManager: AuthManager
+    @State private var signOutTapped = false
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
         ZStack {
-            Color.kuraBackground.ignoresSafeArea()
+            KuraAdaptiveBackground()
 
             VStack(spacing: KuraSpacing.xl) {
                 // Header
-                HStack {
-                    VStack(alignment: .leading, spacing: KuraSpacing.xs) {
-                        Text("Olá 👋")
-                            .font(KuraFont.primaryMedium(size: 20))
-                            .foregroundStyle(Color.kuraText)
-                        Text("O Kura está pronto.")
-                            .font(KuraFont.body)
-                            .foregroundStyle(Color.kuraTextMuted)
-                    }
-                    Spacer()
-
-                    Button {
-                        authManager.signOut()
-                    } label: {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                            .font(.system(size: 14, weight: .thin))
-                            .foregroundStyle(Color.kuraTextMuted)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Sair")
-                }
-                .padding(.horizontal, KuraSpacing.xl)
-                .padding(.top, KuraSpacing.xl)
-
-                Divider()
-                    .background(Color.kuraDivider)
+                header
+                    .padding(.horizontal, KuraSpacing.xl)
+                    .padding(.top, KuraSpacing.xl)
 
                 // Placeholder fase 0
                 Spacer()
@@ -47,6 +26,7 @@ struct DashboardView: View {
                     Image(systemName: "sparkles")
                         .font(.system(size: 36, weight: .thin))
                         .foregroundStyle(Color.kuraAccent)
+                        .symbolEffect(.variableColor.iterative, isActive: true)
 
                     Text("Em construção")
                         .font(KuraFont.headline)
@@ -62,6 +42,43 @@ struct DashboardView: View {
             }
         }
         .frame(width: KuraLayout.popoverWidth, height: KuraLayout.popoverHeight)
+    }
+
+    @ViewBuilder
+    private var header: some View {
+        let content = HStack {
+            VStack(alignment: .leading, spacing: KuraSpacing.xs) {
+                Text("Olá 👋")
+                    .font(KuraFont.primaryMedium(size: 20))
+                    .foregroundStyle(Color.kuraText)
+                Text("O Kura está pronto.")
+                    .font(KuraFont.body)
+                    .foregroundStyle(Color.kuraTextMuted)
+            }
+            Spacer()
+
+            Button {
+                signOutTapped.toggle()
+                authManager.signOut()
+            } label: {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .font(.system(size: 14, weight: .thin))
+                    .foregroundStyle(Color.kuraTextMuted)
+                    .symbolEffect(.bounce, value: signOutTapped)
+            }
+            .buttonStyle(.plain)
+            .help("Sair")
+        }
+
+        if #available(macOS 26, *), !reduceTransparency {
+            GlassEffectContainer {
+                content
+                    .padding(KuraSpacing.md)
+                    .glassEffect(.regular, in: .rect(cornerRadius: KuraLayout.cornerRadius))
+            }
+        } else {
+            content
+        }
     }
 }
 
