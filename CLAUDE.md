@@ -187,15 +187,15 @@ Hiragino Sans como tipografia primária (não fallback) em todos os textos.
 ## Comandos
 
 ```bash
-# Build
-cd Kura && xcodebuild build \
-  -scheme Kura -project Kura.xcodeproj \
+# Build (sempre da raiz do repo — nunca usar cd Kura)
+xcodebuild build \
+  -scheme Kura -project Kura/Kura.xcodeproj \
   -destination 'platform=macOS' \
   CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
 # Testes
-cd Kura && xcodebuild test \
-  -scheme Kura -project Kura.xcodeproj \
+xcodebuild test \
+  -scheme Kura -project Kura/Kura.xcodeproj \
   -destination 'platform=macOS' \
   CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
