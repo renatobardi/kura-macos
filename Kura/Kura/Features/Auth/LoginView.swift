@@ -36,24 +36,21 @@ struct LoginView: View {
 
                 Spacer()
 
-                // Sign in with Apple — glass interativo em macOS 26; aparência do
-                // sistema inalterada em versões anteriores (Apple HIG).
-                KuraGlassContainer {
-                    SignInWithAppleButton(.signIn) { request in
-                        authManager.prepareSignInRequest(request)
-                    } onCompletion: { result in
-                        switch result {
-                        case .success(let authorization):
-                            authManager.completeSignIn(authorization: authorization)
-                        case .failure(let error):
-                            print("[LoginView] Sign in error: \(error.localizedDescription)")
-                        }
+                // Sign in with Apple — botão de sistema, aparência inalterada (Apple HIG
+                // proíbe alterar o botão; o .white já é opaco e ocultaria qualquer glass).
+                SignInWithAppleButton(.signIn) { request in
+                    authManager.prepareSignInRequest(request)
+                } onCompletion: { result in
+                    switch result {
+                    case .success(let authorization):
+                        authManager.completeSignIn(authorization: authorization)
+                    case .failure(let error):
+                        print("[LoginView] Sign in error: \(error.localizedDescription)")
                     }
-                    .signInWithAppleButtonStyle(.white)
-                    .frame(width: 280, height: 44)
-                    .clipShape(.rect(cornerRadius: KuraLayout.cornerRadius))
-                    .kuraGlass(interactive: true)
                 }
+                .signInWithAppleButtonStyle(.white)
+                .frame(width: 280, height: 44)
+                .clipShape(.rect(cornerRadius: KuraLayout.cornerRadius))
 
                 #if DEBUG
                 Button("Dev Sign In") { authManager.debugSignIn() }

@@ -21,7 +21,10 @@ enum KeychainError: LocalizedError {
     }
 }
 
-final class KeychainHelper {
+/// `nonisolated` opta o tipo para fora da isolation default @MainActor (Xcode 26+),
+/// para que `Task.detached` em `AuthManager.restoreSession()` realmente leia o
+/// Keychain fora da main thread — não basta o detached se o método salta de volta.
+nonisolated final class KeychainHelper {
     static let shared = KeychainHelper()
     private init() {}
 

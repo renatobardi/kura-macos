@@ -56,35 +56,33 @@ struct DashboardView: View {
     }
 
     private var header: some View {
-        // Container coordena o glass do fundo do header + o glass interativo do botão.
-        KuraGlassContainer {
-            HStack {
-                VStack(alignment: .leading, spacing: KuraSpacing.xs) {
-                    Text("Olá 👋")
-                        .font(KuraFont.primaryMedium(size: 20))
-                        .foregroundStyle(Color.kuraText)
-                    Text("O Kura está pronto.")
-                        .font(KuraFont.body)
-                        .foregroundStyle(Color.kuraTextMuted)
-                }
-                Spacer()
-
-                Button {
-                    signOutTapped.toggle()
-                    authManager.signOut()
-                } label: {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                        .font(.system(size: 14, weight: .thin))
-                        .foregroundStyle(Color.kuraTextMuted)
-                        .symbolEffect(.bounce, value: signOutTapped)
-                }
-                .buttonStyle(.plain)
-                .help("Sair")
-                .kuraGlass(interactive: true)
+        // Glass vive só na barra do header (chrome). O botão é plain sobre ela —
+        // glass dentro de glass amostraria o próprio fundo e gera artefato.
+        HStack {
+            VStack(alignment: .leading, spacing: KuraSpacing.xs) {
+                Text("Olá 👋")
+                    .font(KuraFont.primaryMedium(size: 20))
+                    .foregroundStyle(Color.kuraText)
+                Text("O Kura está pronto.")
+                    .font(KuraFont.body)
+                    .foregroundStyle(Color.kuraTextMuted)
             }
-            .padding(KuraSpacing.md)
-            .kuraGlass()
+            Spacer()
+
+            Button {
+                signOutTapped.toggle()
+                authManager.signOut()
+            } label: {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .font(.system(size: 14, weight: .thin))
+                    .foregroundStyle(Color.kuraTextMuted)
+                    .symbolEffect(.bounce, value: signOutTapped)
+            }
+            .buttonStyle(.plain)
+            .help("Sair")
         }
+        .padding(KuraSpacing.md)
+        .kuraGlass()
     }
 }
 
