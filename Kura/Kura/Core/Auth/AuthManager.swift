@@ -95,6 +95,17 @@ final class AuthManager: NSObject, ObservableObject {
         authState = .signedOut
     }
 
+    // MARK: - Development helpers
+
+    #if DEBUG
+    /// Simula sign-in sem o entitlement Sign in with Apple. Remove ao ativar Firebase.
+    func debugSignIn() {
+        let id = "dev_\(UUID().uuidString.prefix(8))"
+        try? KeychainHelper.shared.saveAppleUserID(id)
+        authState = .signedIn(userID: id)
+    }
+    #endif
+
     // MARK: - Nonce helpers (PKCE-style for Apple Auth)
 
     static func randomNonce(length: Int = 32) -> String {

@@ -2,7 +2,8 @@
 // Design tokens — tipografia, espaçamento, layout
 //
 // NOTA: As extensões de Color (kuraBackground, kuraAccent etc.) são geradas
-// automaticamente pelo Xcode a partir de Design/Theme/Colors.xcassets.
+// automaticamente pelo Xcode a partir de Assets.xcassets (grupo raiz, não um
+// xcassets separado — xcassets separado causaria conflito de redeclaração).
 // Não declare Color extensions manualmente aqui — causará redeclaração.
 
 import SwiftUI
@@ -154,5 +155,25 @@ extension View {
     /// transparência). Per Apple HIG: usar só em chrome de navegação, nunca em conteúdo.
     func kuraGlass(interactive: Bool = false, cornerRadius: CGFloat = KuraLayout.cornerRadius) -> some View {
         modifier(KuraGlassModifier(interactive: interactive, cornerRadius: cornerRadius))
+    }
+}
+
+// MARK: - Glass Effect Container
+
+/// Coordena múltiplos elementos glass (macOS 26+) para que não se amostrem
+/// mutuamente. Em versões anteriores renderiza o conteúdo sem wrapper.
+struct KuraGlassContainer<Content: View>: View {
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        if #available(macOS 26, *) {
+            GlassEffectContainer { content }
+        } else {
+            content
+        }
     }
 }

@@ -56,31 +56,35 @@ struct DashboardView: View {
     }
 
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: KuraSpacing.xs) {
-                Text("Olá 👋")
-                    .font(KuraFont.primaryMedium(size: 20))
-                    .foregroundStyle(Color.kuraText)
-                Text("O Kura está pronto.")
-                    .font(KuraFont.body)
-                    .foregroundStyle(Color.kuraTextMuted)
-            }
-            Spacer()
+        // Container coordena o glass do fundo do header + o glass interativo do botão.
+        KuraGlassContainer {
+            HStack {
+                VStack(alignment: .leading, spacing: KuraSpacing.xs) {
+                    Text("Olá 👋")
+                        .font(KuraFont.primaryMedium(size: 20))
+                        .foregroundStyle(Color.kuraText)
+                    Text("O Kura está pronto.")
+                        .font(KuraFont.body)
+                        .foregroundStyle(Color.kuraTextMuted)
+                }
+                Spacer()
 
-            Button {
-                signOutTapped.toggle()
-                authManager.signOut()
-            } label: {
-                Image(systemName: "rectangle.portrait.and.arrow.right")
-                    .font(.system(size: 14, weight: .thin))
-                    .foregroundStyle(Color.kuraTextMuted)
-                    .symbolEffect(.bounce, value: signOutTapped)
+                Button {
+                    signOutTapped.toggle()
+                    authManager.signOut()
+                } label: {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .font(.system(size: 14, weight: .thin))
+                        .foregroundStyle(Color.kuraTextMuted)
+                        .symbolEffect(.bounce, value: signOutTapped)
+                }
+                .buttonStyle(.plain)
+                .help("Sair")
+                .kuraGlass(interactive: true)
             }
-            .buttonStyle(.plain)
-            .help("Sair")
+            .padding(KuraSpacing.md)
+            .kuraGlass()
         }
-        .padding(KuraSpacing.md)
-        .kuraGlass()
     }
 }
 

@@ -35,6 +35,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         popover.contentSize = NSSize(width: KuraLayout.popoverWidth, height: KuraLayout.popoverHeight)
         popover.behavior = .transient
         popover.delegate = self
+        // nil desbloqueia o chrome glass automático do NSPopover no macOS 26.
+        if #available(macOS 26, *) { popover.appearance = nil }
         popover.contentViewController = NSHostingController(
             rootView: RootView()
         )
