@@ -56,6 +56,8 @@ struct DashboardView: View {
     }
 
     private var header: some View {
+        // Glass vive só na barra do header (chrome). O botão é plain sobre ela —
+        // glass dentro de glass amostraria o próprio fundo e gera artefato.
         HStack {
             VStack(alignment: .leading, spacing: KuraSpacing.xs) {
                 Text("Olá 👋")

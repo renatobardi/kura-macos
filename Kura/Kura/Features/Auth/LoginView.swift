@@ -36,7 +36,8 @@ struct LoginView: View {
 
                 Spacer()
 
-                // Sign in with Apple — botão de sistema, aparência inalterada (Apple HIG)
+                // Sign in with Apple — botão de sistema, aparência inalterada (Apple HIG
+                // proíbe alterar o botão; o .white já é opaco e ocultaria qualquer glass).
                 SignInWithAppleButton(.signIn) { request in
                     authManager.prepareSignInRequest(request)
                 } onCompletion: { result in
@@ -50,6 +51,12 @@ struct LoginView: View {
                 .signInWithAppleButtonStyle(.white)
                 .frame(width: 280, height: 44)
                 .clipShape(.rect(cornerRadius: KuraLayout.cornerRadius))
+
+                #if DEBUG
+                Button("Dev Sign In") { authManager.debugSignIn() }
+                    .font(KuraFont.caption)
+                    .foregroundStyle(Color.kuraTextMuted)
+                #endif
 
                 Text("Ao continuar, você concorda com os termos de uso.")
                     .font(KuraFont.micro)
