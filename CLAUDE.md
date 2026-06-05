@@ -59,7 +59,7 @@ Quando aprovar, seguir os passos abaixo:
 | UI | SwiftUI (`NSApplicationActivationPolicy.accessory` — menu bar) |
 | Design System | Liquid Glass (macOS 26+), MeshGradient (macOS 15+), SymbolEffect (macOS 14+) |
 | Auth | Firebase Auth + Sign in with Apple |
-| Notificações | FCM → APNs |
+| Notificações | **Primário:** WebSocket (Phoenix Channel) + `UserNotifications` locais — sem conta Apple paga. **Futuro:** FCM → APNs por cima, mesmo payload. Ver [`docs/notifications-spec.md`](docs/notifications-spec.md). |
 | Keychain | Security framework — tokens sempre aqui, nunca UserDefaults |
 | Rede | Phoenix Channels (WebSocket) + URLSession (REST) |
 | Auto-update | Sparkle (delta updates, background download) |
@@ -73,6 +73,9 @@ Quando aprovar, seguir os passos abaixo:
 kura-macos/
 ├── .github/workflows/ci.yml
 ├── CLAUDE.md
+├── SESSION.md                      # handoff de estado entre sessões (pode estar atrás do CLAUDE.md — CLAUDE.md é a fonte de verdade)
+├── docs/
+│   └── notifications-spec.md       # spec do client: WebSocket + notificações locais (handoff do kura-server)
 └── Kura/
     ├── Kura.xcodeproj/
     └── Kura/
@@ -80,11 +83,17 @@ kura-macos/
         │   ├── KuraApp.swift           # @main, NSApplicationDelegateAdaptor
         │   └── AppDelegate.swift       # menu bar setup, NSStatusItem, NSPopover
         ├── Core/
+        │   ├── API/
+        │   │   └── KuraEndpoint.swift   # URL do socket (DEBUG localhost / prod wss)
         │   ├── AppState/
         │   │   └── PopoverVisibility.swift # singleton; isShown pausa animações quando oculto
-        │   └── Auth/
-        │       ├── AuthManager.swift   # ObservableObject, Sign in with Apple
-        │       └── KeychainHelper.swift
+        │   ├── Auth/
+        │   │   ├── AuthManager.swift   # ObservableObject, Sign in with Apple
+        │   │   └── KeychainHelper.swift
+        │   └── Notifications/
+        │       ├── NotificationsClient.swift # Phoenix Socket+Channel notifications:<uid>
+        │       ├── LocalNotifier.swift  # UserNotifications — entrega local, sem conta paga
+        │       └── PushPayload.swift    # model do evento "push"
         ├── Design/
         │   └── Theme/
         │       └── Theme.swift         # KuraFont, KuraSpacing, KuraLayout
@@ -99,6 +108,7 @@ kura-macos/
         │   └── Settings/              # vazio — Fase 1
         ├── Assets.xcassets/            # 9 color tokens + AppIcon
         ├── GoogleService-Info.plist    # AGORA É UM TEMPLATE
+        ├── GoogleService-Info.plist.template # template versionado; CI gera o real via GitHub Secrets
         ├── Info.plist                  # LSUIElement=YES, macOS 14+
         ├── Kura.entitlements           # sandbox=NO, network=YES
         └── RootView.swift              # roteador authState → login | dashboard
@@ -295,7 +305,7 @@ Todos em `.claude/hooks/`. Rodam automaticamente via `.claude/settings.json`.
 - [ ] Player de áudio do briefing
 - [ ] Inbox view + interação conversacional
 - [ ] Badge no menu bar
-- [ ] Push notifications + deep link
+- [~] Push notifications + deep link — client WebSocket + `UserNotifications` locais implementado (`Core/Notifications/` + `Core/API/KuraEndpoint.swift`, wiring em `AppDelegate`). DEBUG conecta com `user_id` cru (server test env); path Firebase ID token pronto-mas-comentado em `NotificationsClient`. **Pendente:** adicionar pacote SwiftPhoenixClient via SPM no Xcode, E2E contra server, e deep-link por `data.type` (precisa das views Fase 4). Spec: [`docs/notifications-spec.md`](docs/notifications-spec.md). APNs entra depois, sem mudar o payload.
 
 ### Fase 5 — App Completo — 🔲 não iniciada
 - [ ] ⌘K command palette

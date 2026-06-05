@@ -1,5 +1,5 @@
 {
-  "originHash" : "c63c63846d9c539229e96de38d6af51417e28c0ee9a0bc48bd0f0f19d923c329",
+  "originHash" : "96e2b1a79cc4dd0928f6e91b0451f1266875e9988edcade3cff4d3a4dd8e40b9",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -116,6 +116,15 @@
       "state" : {
         "revision" : "540318ecedd63d883069ae7f1ed811a2df00b6ac",
         "version" : "2.4.0"
+      }
+    },
+    {
+      "identity" : "swiftphoenixclient",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/davidstump/SwiftPhoenixClient",
+      "state" : {
+        "revision" : "25a4d8a3fa754ef3fb587a34addd08c7e568abc4",
+        "version" : "5.3.5"
       }
     }
   ],

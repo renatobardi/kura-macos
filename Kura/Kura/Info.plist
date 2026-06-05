@@ -13,5 +13,13 @@
     <!-- Sign in with Apple — entitlement (habilitar em Apple Developer após aprovação) -->
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 Renato Bardi. All rights reserved.</string>
+
+    <!-- Permite ws://127.0.0.1:4000 (kura-server local) em dev. Escopado a localhost/.local
+         — produção usa wss:// e não precisa de exceção. Ver docs/notifications-spec.md. -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
 </dict>
 </plist>
