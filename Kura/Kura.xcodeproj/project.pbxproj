@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		448236612FCB239F00EC9A55 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 448236602FCB239F00EC9A55 /* FirebaseAnalytics */; };
 		448236632FCB239F00EC9A55 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 448236622FCB239F00EC9A55 /* FirebaseAuth */; };
+		5A1F00010000000000000001 /* SwiftPhoenixClient in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1F00010000000000000002 /* SwiftPhoenixClient */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +44,7 @@
 			files = (
 				448236612FCB239F00EC9A55 /* FirebaseAnalytics in Frameworks */,
 				448236632FCB239F00EC9A55 /* FirebaseAuth in Frameworks */,
+				5A1F00010000000000000001 /* SwiftPhoenixClient in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,6 +89,7 @@
 			packageProductDependencies = (
 				448236602FCB239F00EC9A55 /* FirebaseAnalytics */,
 				448236622FCB239F00EC9A55 /* FirebaseAuth */,
+				5A1F00010000000000000002 /* SwiftPhoenixClient */,
 			);
 			productName = Kura;
 			productReference = 448235DC2FCB1F0D00EC9A55 /* Kura.app */;
@@ -118,6 +121,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				4482365F2FCB239F00EC9A55 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				5A1F00010000000000000003 /* XCRemoteSwiftPackageReference "SwiftPhoenixClient" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 448235DD2FCB1F0D00EC9A55 /* Products */;
@@ -365,6 +369,14 @@
 				minimumVersion = 12.14.0;
 			};
 		};
+		5A1F00010000000000000003 /* XCRemoteSwiftPackageReference "SwiftPhoenixClient" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/davidstump/SwiftPhoenixClient";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.3.5;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -377,6 +389,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4482365F2FCB239F00EC9A55 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAuth;
+		};
+		5A1F00010000000000000002 /* SwiftPhoenixClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A1F00010000000000000003 /* XCRemoteSwiftPackageReference "SwiftPhoenixClient" */;
+			productName = SwiftPhoenixClient;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
